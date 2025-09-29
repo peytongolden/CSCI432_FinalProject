@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Robert's Rules of Order App</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <header class="header">
+        Robert's Rules of Order Committee
+    </header>
+
+    <div class="main-container">
+        <div class="participants-section">
+            <h1 class="section-title">Committee Members</h1>
+            
+            <!-- Special Role Members -->
+            <div class="special-roles">
+                <div class="role-member presiding-officer">
+                    <div class="role-label">Presiding Officer</div>
+                    <div class="participant-item">
+                        <span class="participant-name">Sarah Johnson</span>
+                        <div class="vote-indicator vote-yes">✓</div>
+                    </div>
+                </div>
+
+                <div class="role-member on-floor">
+                    <div class="role-label">On the Floor</div>
+                    <div class="participant-item">
+                        <span class="participant-name">Mike Chen</span>
+                        <div class="vote-indicator vote-no">✗</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Regular Members - This will be populated by JavaScript -->
+            <div class="regular-members">
+                <div class="role-label">Members</div>
+                <div class="members-grid">
+                    <!-- JavaScript will populate this -->
+                </div>
+            </div>
+        </div>
+
+        <div class="current-motion-section">
+            <h2 class="current-motion-title">Current Motion</h2>
+            <div class="motion-details">
+                <h3 class="motion-title">Motion to Approve Budget Amendment</h3>
+                <p class="motion-description">Proposed amendment to increase marketing budget by $5,000 for Q4 initiatives.</p>
+                <p class="motion-status">Status: <span class="status-voting">Voting in Progress</span></p>
+            </div>
+            
+            <!-- Voting buttons will be populated by JavaScript -->
+            <div class="voting-buttons">
+                <div class="vote-button vote-no-btn" onclick="castVote('no')">✗</div>
+                <div class="vote-button vote-abstain-btn" onclick="castVote('abstain')">—</div>
+                <div class="vote-button vote-yes-btn" onclick="castVote('yes')">✓</div>
+            </div>
+        </div>
+
+        <div class="controls-section" onclick="openControls()">
+            ⚙️
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
