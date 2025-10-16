@@ -4,18 +4,40 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" href="style.css">
-    <title>App Name</title>
+    <title>Login — Roberts Rules App</title>
 </head>
 <body>
-    <header>
-        <h1>Roberts Rules of Order App</h1>
+    <header class="header">
+        Roberts Rules of Order App
     </header>
-    <form action="where you want the data to be sent. Example takes .php, look into that">
-        <p>Email Address</p>
-        <input type="email">
-        <p>Password</p>
-        <input type="password">
-    </form>
+
+    <main class="main-container">
+        <section class="participants-section">
+            <h2 class="section-title">Sign in</h2>
+
+            <form id="loginForm" aria-label="Login form" novalidate>
+                <div class="form-row">
+                    <label for="email">Email address</label>
+                    <input id="email" name="email" type="email" required>
+                </div>
+
+                <div class="form-row">
+                    <label for="password">Password</label>
+                    <input id="password" name="password" type="password" required>
+                </div>
+
+                <div id="formError" role="alert" aria-live="polite"></div>
+
+                <div style="display:flex; gap:0.5rem; margin-top:0.75rem; flex-wrap:wrap">
+                    <button type="submit" class="primary">Log in</button>
+                    <button id="createAccount" type="button">Create account</button>
+                    <button id="guestSignin" type="button">Sign in as guest</button>
+                </div>
+            </form>
+        </section>
+    </main>
+
+    <script src="src/validation.js" defer></script>
 </body>
 </html>
 

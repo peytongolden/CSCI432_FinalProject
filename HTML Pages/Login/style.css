@@ -1,0 +1,57 @@
+/* Copied from Meeting styles with small overrides for login card */
+:root {
+    --dark-moss-green: #606c38;
+    --pakistan-green: #283618;
+    --cornsilk: #fefae0;
+    --earth-yellow: #dda15e;
+    --tigers-eye: #bc6c25;
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: Arial, sans-serif;
+    background: linear-gradient(135deg, var(--pakistan-green), var(--dark-moss-green));
+    min-height: 100vh;
+    color: var(--pakistan-green);
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    padding:20px;
+}
+
+.header {
+    display:none; /* hide heavy header on login */
+}
+
+.main-container {
+    width:100%;
+    max-width:420px;
+}
+
+/* Card for login form to improve contrast */
+.main-container form{
+    background-color: var(--cornsilk);
+    padding: 22px;
+    border-radius: 12px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.25);
+    border: 2px solid var(--tigers-eye);
+}
+
+.section-title{font-size:28px; color:var(--pakistan-green); text-align:center; margin-bottom:12px}
+
+label{display:block; font-weight:600; margin-bottom:6px}
+input{width:100%; padding:10px 12px; border-radius:8px; border:1px solid rgba(40,54,24,0.08); margin-bottom:10px}
+
+button{padding:10px 14px; border-radius:8px; border:none}
+.primary{background:var(--pakistan-green); color:var(--cornsilk)}
+
+#formError{color:#9b111e; min-height:18px; margin-bottom:6px}
+
+@media (max-width:480px){
+    .main-container{max-width:100%;}
+}
