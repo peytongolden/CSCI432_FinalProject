@@ -1,9 +1,0 @@
-# Normalize line endings to avoid LF/CRLF warnings on Windows
-# This will tell Git to handle text files as text and checkout CRLF on Windows
-* text=auto eol=crlf
-
-# Keep certain binary files unchanged (example)
-*.png binary
-*.jpg binary
-*.jpeg binary
-*.gif binary
