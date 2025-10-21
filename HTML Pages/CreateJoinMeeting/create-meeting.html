@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="en">
+	<head>
+		<meta charset="utf-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1" />
+		<title>Create Meeting - Roberts Rules of Order App</title>
+		<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600&family=Montserrat:wght@400;600&display=swap" rel="stylesheet">
+		<link rel="stylesheet" href="src/style.css" />
+		<link rel="stylesheet" href="src/forms.css" />
+	</head>
+	<body>
+		<div class="topbar"></div>
+
+		<main class="container">
+			<h1 class="title">Create a New Meeting</h1>
+
+			<form class="form-container">
+				<div class="form-group">
+					<label for="meetingName">Meeting Name</label>
+					<input type="text" id="meetingName" name="meetingName" required placeholder="Enter meeting name">
+				</div>
+
+				<div class="form-group">
+					<label for="meetingDate">Date</label>
+					<input type="date" id="meetingDate" name="meetingDate" required>
+				</div>
+
+				<div class="form-group">
+					<label for="meetingTime">Time</label>
+					<input type="time" id="meetingTime" name="meetingTime" required>
+				</div>
+
+				<div class="form-group">
+					<label for="meetingDescription">Description (Optional)</label>
+					<textarea id="meetingDescription" name="meetingDescription" rows="3" placeholder="Enter meeting description"></textarea>
+				</div>
+
+				<div class="buttons">
+					<button type="submit" class="btn primary">Create Meeting</button>
+					<a href="index.html" class="btn">Back</a>
+				</div>
+			</form>
+		</main>
+	</body>
+</html>

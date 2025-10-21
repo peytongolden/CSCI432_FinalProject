@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="en">
+	<head>
+		<meta charset="utf-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1" />
+		<title>Join Meeting - Roberts Rules of Order App</title>
+		<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600&family=Montserrat:wght@400;600&display=swap" rel="stylesheet">
+		<link rel="stylesheet" href="src/style.css" />
+		<link rel="stylesheet" href="src/forms.css" />
+	</head>
+	<body>
+		<div class="topbar"></div>
+
+		<main class="container">
+			<h1 class="title">Join a Meeting</h1>
+
+			<form class="form-container">
+				<div class="form-group">
+					<label for="meetingCode">Meeting Code</label>
+					<input type="text" id="meetingCode" name="meetingCode" required placeholder="Enter meeting code">
+				</div>
+
+				<div class="form-group">
+					<label for="displayName">Your Display Name</label>
+					<input type="text" id="displayName" name="displayName" required placeholder="Enter your name">
+				</div>
+
+				<div class="buttons">
+					<button type="submit" class="btn primary">Join Meeting</button>
+					<a href="index.html" class="btn">Back</a>
+				</div>
+			</form>
+		</main>
+	</body>
+</html>
