@@ -1,0 +1,101 @@
+.login-page {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+
+.login-header h1 {
+  color: var(--cornsilk);
+  font-size: 32px;
+  text-align: center;
+  margin-bottom: 40px;
+  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+.main-container {
+  max-width: 500px;
+  width: 100%;
+  padding: 40px;
+  background-color: var(--cornsilk);
+  border-radius: 15px;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
+}
+
+.participants-section {
+  width: 100%;
+}
+
+.section-title {
+  text-align: center;
+  font-size: 32px;
+  font-weight: bold;
+  margin-bottom: 30px;
+  color: var(--pakistan-green);
+}
+
+.form-row {
+  margin-bottom: 20px;
+}
+
+.form-row label {
+  display: block;
+  margin-bottom: 8px;
+  color: var(--pakistan-green);
+  font-weight: 500;
+}
+
+.form-row input {
+  width: 100%;
+  padding: 12px;
+  border: 2px solid var(--earth-yellow);
+  border-radius: 8px;
+  font-size: 16px;
+  background-color: rgba(254, 250, 224, 0.5);
+  color: var(--pakistan-green);
+  transition: border-color 0.2s;
+}
+
+.form-row input:focus {
+  outline: none;
+  border-color: var(--tigers-eye);
+}
+
+.error {
+  color: #c92a2a;
+  background-color: #ffe0e0;
+  padding: 10px;
+  border-radius: 5px;
+  margin-bottom: 15px;
+  font-size: 14px;
+}
+
+button {
+  padding: 12px 24px;
+  border: 2px solid var(--tigers-eye);
+  border-radius: 8px;
+  background-color: var(--earth-yellow);
+  color: var(--pakistan-green);
+  font-weight: 600;
+  cursor: pointer;
+  font-size: 16px;
+  transition: all 0.2s;
+}
+
+button:hover {
+  background-color: var(--tigers-eye);
+  color: var(--cornsilk);
+  transform: translateY(-2px);
+}
+
+button.primary {
+  background-color: var(--tigers-eye);
+  color: var(--cornsilk);
+}
+
+button.primary:hover {
+  background-color: var(--pakistan-green);
+}
+

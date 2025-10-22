@@ -1,0 +1,119 @@
+.voting-buttons {
+  display: flex;
+  gap: 15px;
+  justify-content: center;
+  align-items: center;
+}
+
+.vote-button {
+  flex: 1;
+  max-width: 180px;
+  padding: 18px 30px;
+  border: none;
+  border-radius: 12px;
+  font-size: 18px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  position: relative;
+  overflow: hidden;
+}
+
+.vote-button::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 0;
+  height: 0;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.3);
+  transform: translate(-50%, -50%);
+  transition: width 0.6s, height 0.6s;
+}
+
+.vote-button:hover::before {
+  width: 300px;
+  height: 300px;
+}
+
+.vote-button:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.25);
+}
+
+.vote-button:active {
+  transform: translateY(-1px);
+}
+
+.vote-no-btn {
+  background: linear-gradient(135deg, var(--tigers-eye), #9c4a1a);
+  color: white;
+}
+
+.vote-abstain-btn {
+  background: linear-gradient(135deg, var(--earth-yellow), #d4a574);
+  color: var(--pakistan-green);
+}
+
+.vote-yes-btn {
+  background: linear-gradient(135deg, var(--dark-moss-green), var(--pakistan-green));
+  color: white;
+}
+
+.vote-status {
+  text-align: center;
+  padding: 25px;
+  background: linear-gradient(135deg, rgba(96, 108, 56, 0.1), rgba(96, 108, 56, 0.05));
+  border-radius: 12px;
+  border: 2px solid var(--earth-yellow);
+}
+
+.vote-status p {
+  font-size: 20px;
+  color: var(--pakistan-green);
+  margin-bottom: 15px;
+  font-weight: 600;
+}
+
+.vote-status strong {
+  color: var(--tigers-eye);
+  font-size: 24px;
+}
+
+.change-vote-btn {
+  margin-top: 15px;
+  padding: 12px 30px;
+  background: linear-gradient(135deg, var(--earth-yellow), #d4a574);
+  color: var(--pakistan-green);
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 700;
+  font-size: 16px;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 12px rgba(221, 161, 94, 0.3);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.change-vote-btn:hover {
+  background: linear-gradient(135deg, var(--tigers-eye), #9c4a1a);
+  color: white;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(188, 108, 37, 0.4);
+}
+
+@media (max-width: 768px) {
+  .voting-buttons {
+    flex-direction: column;
+  }
+  
+  .vote-button {
+    max-width: 100%;
+    width: 100%;
+  }
+}

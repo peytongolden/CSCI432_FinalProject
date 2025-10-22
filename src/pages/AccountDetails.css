@@ -1,0 +1,36 @@
+.account-page {
+  min-height: calc(100vh - 70px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 20px;
+}
+
+.account-info {
+  width: 100%;
+}
+
+.info-row {
+  margin-bottom: 25px;
+  padding: 15px;
+  background-color: rgba(221, 161, 94, 0.1);
+  border-radius: 8px;
+  border: 1px solid var(--earth-yellow);
+}
+
+.info-row label {
+  display: block;
+  font-weight: bold;
+  color: var(--tigers-eye);
+  margin-bottom: 8px;
+  font-size: 14px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.info-row p {
+  font-size: 18px;
+  color: var(--pakistan-green);
+  margin: 0;
+}
+

@@ -1,0 +1,85 @@
+.controls-modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(5px);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+  animation: fadeIn 0.2s ease;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.modal-content {
+  background: white;
+  padding: 35px;
+  border-radius: 20px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+  max-width: 450px;
+  width: 90%;
+  animation: slideUp 0.3s ease;
+}
+
+@keyframes slideUp {
+  from {
+    transform: translateY(50px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.modal-content h3 {
+  color: var(--pakistan-green);
+  margin-bottom: 25px;
+  font-size: 28px;
+  text-align: center;
+  font-weight: 700;
+}
+
+.modal-content button {
+  display: block;
+  width: 100%;
+  margin: 12px 0;
+  padding: 14px 20px;
+  background: linear-gradient(135deg, var(--earth-yellow), #d4a574);
+  color: var(--pakistan-green);
+  border: none;
+  border-radius: 10px;
+  cursor: pointer;
+  font-weight: 700;
+  font-size: 16px;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 12px rgba(221, 161, 94, 0.3);
+}
+
+.modal-content button:hover {
+  background: linear-gradient(135deg, var(--tigers-eye), #9c4a1a);
+  color: white;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(188, 108, 37, 0.4);
+}
+
+.modal-content button:last-child {
+  background: linear-gradient(135deg, var(--pakistan-green), var(--dark-moss-green));
+  color: white;
+  margin-top: 20px;
+}
+
+.modal-content button:last-child:hover {
+  background: linear-gradient(135deg, var(--dark-moss-green), var(--pakistan-green));
+}

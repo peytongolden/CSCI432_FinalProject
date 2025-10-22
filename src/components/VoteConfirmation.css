@@ -1,0 +1,44 @@
+.vote-confirmation {
+  position: fixed;
+  top: 90px;
+  right: 30px;
+  background: linear-gradient(135deg, var(--dark-moss-green), var(--pakistan-green));
+  color: white;
+  padding: 18px 24px;
+  border-radius: 12px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
+  z-index: 1000;
+  animation: slideInRight 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+  min-width: 200px;
+}
+
+.vote-confirmation p {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.vote-confirmation strong {
+  font-size: 18px;
+  letter-spacing: 1px;
+}
+
+@keyframes slideInRight {
+  from {
+    transform: translateX(400px);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+@media (max-width: 768px) {
+  .vote-confirmation {
+    top: 80px;
+    right: 15px;
+    left: 15px;
+    min-width: auto;
+  }
+}

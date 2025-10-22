@@ -1,0 +1,109 @@
+.history-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.history-item {
+  background: linear-gradient(135deg, rgba(254, 250, 224, 0.3), rgba(254, 250, 224, 0.1));
+  padding: 18px;
+  border-radius: 12px;
+  border-left: 4px solid var(--earth-yellow);
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.history-item:hover {
+  background: linear-gradient(135deg, rgba(221, 161, 94, 0.2), rgba(221, 161, 94, 0.1));
+  border-left-color: var(--tigers-eye);
+  transform: translateX(5px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+}
+
+.history-item-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+  gap: 15px;
+  flex-wrap: wrap;
+}
+
+.history-item-header h4 {
+  font-size: 17px;
+  color: var(--pakistan-green);
+  margin: 0;
+  flex: 1;
+  font-weight: 600;
+}
+
+.motion-result {
+  padding: 5px 14px;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.motion-result.passed {
+  background: linear-gradient(135deg, var(--dark-moss-green), var(--pakistan-green));
+  color: white;
+}
+
+.motion-result.failed {
+  background: linear-gradient(135deg, var(--tigers-eye), #9c4a1a);
+  color: white;
+}
+
+.motion-result.tied {
+  background: linear-gradient(135deg, var(--earth-yellow), #d4a574);
+  color: var(--pakistan-green);
+}
+
+.motion-result.in-progress {
+  background: linear-gradient(135deg, var(--pakistan-green), var(--dark-moss-green));
+  color: white;
+}
+
+.history-item-description {
+  font-size: 14px;
+  color: var(--tigers-eye);
+  margin-bottom: 12px;
+  line-height: 1.5;
+}
+
+.history-item-votes {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.vote-badge {
+  padding: 4px 10px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.vote-badge.yes {
+  background: var(--dark-moss-green);
+  color: white;
+}
+
+.vote-badge.no {
+  background: var(--tigers-eye);
+  color: white;
+}
+
+.vote-badge.abstain {
+  background: var(--earth-yellow);
+  color: var(--pakistan-green);
+}
+
+@media (max-width: 768px) {
+  .history-item-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}

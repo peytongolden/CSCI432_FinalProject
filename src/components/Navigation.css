@@ -1,0 +1,89 @@
+.top-navbar {
+  background-color: var(--pakistan-green);
+  padding: 0 30px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  position: sticky;
+  top: 0;
+  z-index: 1000;
+  height: 70px;
+}
+
+.nav-brand h1 {
+  color: var(--cornsilk);
+  font-size: 24px;
+  font-weight: 600;
+  margin: 0;
+  letter-spacing: 0.5px;
+}
+
+.nav-links {
+  display: flex;
+  gap: 5px;
+  align-items: center;
+}
+
+.nav-link {
+  padding: 10px 20px;
+  color: var(--cornsilk);
+  text-decoration: none;
+  font-weight: 500;
+  font-size: 16px;
+  transition: all 0.2s ease;
+  border-radius: 6px;
+  position: relative;
+}
+
+.nav-link:hover {
+  background-color: rgba(254, 250, 224, 0.1);
+}
+
+.nav-link.active {
+  background-color: var(--tigers-eye);
+}
+
+.nav-link.active::after {
+  content: '';
+  position: absolute;
+  bottom: 5px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 30px;
+  height: 3px;
+  background-color: var(--earth-yellow);
+  border-radius: 2px;
+}
+
+.nav-link.logout {
+  background-color: rgba(188, 108, 37, 0.3);
+  margin-left: 10px;
+}
+
+.nav-link.logout:hover {
+  background-color: var(--tigers-eye);
+}
+
+@media (max-width: 768px) {
+  .top-navbar {
+    padding: 0 15px;
+    height: auto;
+    flex-wrap: wrap;
+    padding: 10px 15px;
+  }
+  
+  .nav-brand h1 {
+    font-size: 20px;
+  }
+  
+  .nav-links {
+    gap: 3px;
+  }
+  
+  .nav-link {
+    padding: 8px 12px;
+    font-size: 14px;
+  }
+}
+

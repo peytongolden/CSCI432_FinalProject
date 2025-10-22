@@ -1,0 +1,29 @@
+:root {
+  --dark-moss-green: #606c38;
+  --pakistan-green: #283618;
+  --cornsilk: #fefae0;
+  --earth-yellow: #dda15e;
+  --tigers-eye: #bc6c25;
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  background: linear-gradient(135deg, var(--pakistan-green), var(--dark-moss-green));
+  min-height: 100vh;
+  color: var(--pakistan-green);
+}
+
+#root {
+  min-height: 100vh;
+}
+
+button {
+  font-family: inherit;
+}
+
