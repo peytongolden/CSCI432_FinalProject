@@ -6,13 +6,11 @@ function CreateJoinMeeting() {
   const navigate = useNavigate()
 
   const handleCreateMeeting = () => {
-    // In a real app, this would create a meeting and navigate to it
-    navigate('/meeting')
+    navigate('/create-meeting')
   }
 
   const handleJoinMeeting = () => {
-    // In a real app, this would show a modal to enter meeting code
-    navigate('/meeting')
+    navigate('/join-meeting')
   }
 
   return (
