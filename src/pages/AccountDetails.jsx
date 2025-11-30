@@ -1,35 +1,45 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { tokenManager } from '../utils/tokenManager'
 import './Login.css'
 import './AccountDetails.css'
 import Navigation from '../components/Navigation'
 
 function AccountDetails() {
   const navigate = useNavigate()
-  // Load persisted user info from localStorage, fallback to defaults
+  const authUser = tokenManager.getUser()
+
+  // Load user info from tokenManager (JWT auth), fallback to placeholder
   const [userInfo, setUserInfo] = useState(() => {
-    try {
-      const raw = localStorage.getItem('userInfo')
-      if (raw) return JSON.parse(raw)
-    } catch (e) {
-      console.error('Failed to parse stored user info', e)
+    if (authUser) {
+      return {
+        id: authUser.id,
+        name: authUser.name || 'User',
+        email: authUser.email || '',
+        role: 'Committee Member',
+        joinDate: new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long' }),
+        phone: '',
+        bio: '',
+        avatar: ''
+      }
     }
 
     return {
+      id: '',
       name: 'Alex Rivera',
       email: 'alexrivera@example.com',
       role: 'Committee Member',
       joinDate: 'January 2024',
       phone: '555-555-5555',
-      bio: 'Hi, I am Alex Rivera, a dedicated committee member passionate about events,'+
-      'planning and event planning. I also like cats.',
-      avatar: '' // base64 data URL or remote URL
+      bio: 'Hi, I am Alex Rivera, a dedicated committee member passionate about events, planning and event planning. I also like cats.',
+      avatar: ''
     }
   })
 
   const [editing, setEditing] = useState(false)
   const [form, setForm] = useState(userInfo)
   const [errors, setErrors] = useState({})
+  const [loading, setLoading] = useState(false)
 
   useEffect(() => {
     setForm(userInfo)
@@ -90,6 +100,8 @@ function AccountDetails() {
         <section className="participants-section">
           <h2 className="section-title">Account Details</h2>
 
+          {errors.general && <div style={{ color: '#c92a2a', marginBottom: '20px', padding: '10px', backgroundColor: '#ffe0e0', borderRadius: '5px' }}>{errors.general}</div>}
+
           <div className="account-info">
             <div className="account-header">
               <div className="avatar">
@@ -107,26 +119,49 @@ function AccountDetails() {
                   <>
                     <button
                       className="primary"
-                      onClick={() => {
-                          // Ensure phone is formatted before validating/saving
-                          const formattedPhone = formatPhone(form.phone)
-                          const emailErr = validateEmail(form.email)
-                          const phoneErr = validatePhone(formattedPhone)
-                          const next = {}
-                          if (emailErr) next.email = emailErr
-                          if (phoneErr) next.phone = phoneErr
-                          setErrors(next)
-                          if (Object.keys(next).length > 0) return
+                      onClick={async () => {
+                        const formattedPhone = formatPhone(form.phone)
+                        const emailErr = validateEmail(form.email)
+                        const phoneErr = validatePhone(formattedPhone)
+                        const next = {}
+                        if (emailErr) next.email = emailErr
+                        if (phoneErr) next.phone = phoneErr
+                        setErrors(next)
+                        if (Object.keys(next).length > 0) return
+
+                        setLoading(true)
+                        try {
+                          const token = tokenManager.getToken()
+                          const res = await fetch('http://localhost:4000/api/auth/profile', {
+                            method: 'PUT',
+                            headers: {
+                              'Content-Type': 'application/json',
+                              'Authorization': `Bearer ${token}`
+                            },
+                            body: JSON.stringify({
+                              name: form.name,
+                              phone: formattedPhone,
+                              bio: form.bio
+                            })
+                          })
+
+                          const data = await res.json()
+                          if (!res.ok) throw new Error(data.error || 'Failed to save profile')
 
                           const updated = { ...form, phone: formattedPhone }
                           setUserInfo(updated)
-                          try { localStorage.setItem('userInfo', JSON.stringify(updated)) } catch (e) { console.error(e) }
+                          tokenManager.setUser({ ...authUser, name: form.name })
                           setForm(updated)
                           setEditing(false)
-                        }}
-                      disabled={Object.keys(errors).length > 0}
+                        } catch (err) {
+                          setErrors({ general: err.message })
+                        } finally {
+                          setLoading(false)
+                        }
+                      }}
+                      disabled={Object.keys(errors).length > 0 || loading}
                     >
-                      Save
+                      {loading ? 'Saving...' : 'Save'}
                     </button>
                     <button onClick={() => { setForm(userInfo); setEditing(false); setErrors({}) }}>Cancel</button>
                   </>
@@ -196,7 +231,7 @@ function AccountDetails() {
               <button className="primary" onClick={() => navigate('/lobby')}>
                 Go to Lobby
               </button>
-              <button onClick={() => { localStorage.removeItem('userInfo'); navigate('/login') }}>
+              <button onClick={() => { tokenManager.logout(); navigate('/login') }}>
                 Logout
               </button>
             </div>
