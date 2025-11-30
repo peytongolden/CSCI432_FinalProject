@@ -1,6 +1,4 @@
 import { useState, useEffect } from 'react'
-import { useLocation, useParams } from 'react-router-dom'
-import { tokenManager } from '../utils/tokenManager'
 import './Meeting.css'
 import MembersList from '../components/MembersList'
 import CurrentMotion from '../components/CurrentMotion'
@@ -12,13 +10,9 @@ import MotionHistory from '../components/MotionHistory'
 import Navigation from '../components/Navigation'
 
 function Meeting() {
-  const location = useLocation()
-  const params = useParams()
-  const [meetingInfo, setMeetingInfo] = useState(location.state?.meeting || null)
-
-  const [committee, setCommittee] = useState({
+  const [committee] = useState({
     id: 1,
-    name: meetingInfo?.name || 'Budget Committee',
+    name: 'Budget Committee',
     sessionActive: true
   })
 
@@ -64,32 +58,8 @@ function Meeting() {
   const [voteConfirmation, setVoteConfirmation] = useState(null)
   const [nextMotionId, setNextMotionId] = useState(2)
 
-  // Fetch meeting details if needed and reset votes when motion changes
+  // Reset member votes when motion changes
   useEffect(() => {
-    const fetchIfNeeded = async () => {
-      if (!meetingInfo && params.code) {
-        try {
-          const token = tokenManager.getToken()
-          if (!token) return
-          
-          const res = await fetch(`http://localhost:4000/api/meetings/${params.code}`, {
-            headers: {
-              'Authorization': `Bearer ${token}`
-            }
-          })
-          if (res.ok) {
-            const data = await res.json()
-            setMeetingInfo(data.meeting)
-            setCommittee(prev => ({ ...prev, name: data.meeting.name }))
-          }
-        } catch (e) {
-          console.warn('Failed to fetch meeting by code', e)
-        }
-      }
-    }
-
-    fetchIfNeeded()
-
     setMembers(prev =>
       prev.map(member => ({
         ...member,
@@ -101,7 +71,7 @@ function Meeting() {
       hasVoted: false,
       vote: null
     }))
-  }, [currentMotionId, params.code, meetingInfo])
+  }, [currentMotionId])
 
   // Cast a vote
   const castVote = (vote) => {
