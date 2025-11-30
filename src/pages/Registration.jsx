@@ -1,6 +1,5 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { tokenManager } from '../utils/tokenManager'
 import './Login.css'
 
 function Registration() {
@@ -11,7 +10,6 @@ function Registration() {
     confirmPassword: ''
   })
   const [error, setError] = useState('')
-  const [loading, setLoading] = useState(false)
   const navigate = useNavigate()
 
   const handleChange = (e) => {
@@ -63,33 +61,23 @@ function Registration() {
     
     if (!validateForm()) return
     
-    setLoading(true)
     try {
-      const response = await fetch('http://localhost:4000/api/auth/register', {
+      const response = await fetch('/api/register', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          name: formData.name,
-          email: formData.email,
-          password: formData.password
-        })
+        body: JSON.stringify(formData)
       })
       
       const data = await response.json()
       
-      if (response.status === 201 && data.success) {
-        // Store token and user info
-        tokenManager.setToken(data.token)
-        tokenManager.setUser(data.user)
-        navigate('/lobby')
+      if (response.status === 200 && data.success) {
+        navigate('/login')
       } else {
-        setError(data.error || 'Registration failed')
+        setError(data.message || 'Registration failed')
       }
     } catch (err) {
       setError('Network error — please try again')
       console.error(err)
-    } finally {
-      setLoading(false)
     }
   }
 
@@ -159,8 +147,8 @@ function Registration() {
             )}
 
             <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.75rem', flexWrap: 'wrap' }}>
-              <button type="submit" className="primary" disabled={loading}>
-                {loading ? 'Registering...' : 'Register'}
+              <button type="submit" className="primary">
+                Register
               </button>
               <button type="button" onClick={() => navigate('/login')}>
                 Back to Login

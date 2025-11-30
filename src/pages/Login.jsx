@@ -1,13 +1,11 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { tokenManager } from '../utils/tokenManager'
 import './Login.css'
 
 function Login() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
-  const [loading, setLoading] = useState(false)
   const navigate = useNavigate()
 
   const validateForm = () => {
@@ -42,9 +40,8 @@ function Login() {
     
     if (!validateForm()) return
     
-    setLoading(true)
     try {
-      const response = await fetch('http://localhost:4000/api/auth/login', {
+      const response = await fetch('/api/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password })
@@ -53,17 +50,13 @@ function Login() {
       const data = await response.json()
       
       if (response.status === 200 && data.success) {
-        tokenManager.setToken(data.token)
-        tokenManager.setUser(data.user)
-        navigate('/lobby')
+        navigate('/meeting')
       } else {
-        setError(data.error || 'Login failed')
+        setError(data.message || 'Login failed')
       }
     } catch (err) {
       setError('Network error — please try again')
       console.error(err)
-    } finally {
-      setLoading(false)
     }
   }
 
@@ -118,11 +111,14 @@ function Login() {
             )}
 
             <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.75rem', flexWrap: 'wrap' }}>
-              <button type="submit" className="primary" disabled={loading}>
-                {loading ? 'Logging in...' : 'Log in'}
+              <button type="submit" className="primary">
+                Log in
               </button>
               <button type="button" onClick={handleCreateAccount}>
                 Create account
+              </button>
+              <button type="button" onClick={handleGuestSignIn}>
+                Sign in as guest
               </button>
             </div>
           </form>
