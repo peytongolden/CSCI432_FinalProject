@@ -138,14 +138,24 @@ app.get('api/committee/:id', (req, res) => {
 })
 
 //adds member to committee, adds committee membership to user information
-//takes JSON with: { CommitteeName: String, userID: ObjectId }
+//takes JSON with: { CommitteeName: ObjectId, userID: String }
 app.post('api/committee/addmember', (req, res) => {
     const request = req.body;
+    let uid;
 
     if (ObjectId.isValid(request.userID)) {
 
+        db.collection('users')
+            .find({email: request.userID})
+            .then((result) => {
+                uid = result._id
+                db.collection('users')
+                    .update({email: request.userID}, {$push: request.ObjectId })
+            })
+            .catch(err => res.status(500).json({error: "Server Error"}))
+
         const newMember = {
-             uid: request.userID,
+             uid: request.uid,
              role: "Member",
              vote: 0,
              procon: 0
