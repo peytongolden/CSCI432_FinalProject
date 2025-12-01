@@ -60,8 +60,16 @@ app.post('/api/user/new', (req, res) => {
     const user = req.body
 
     db.collection('users')
-        .insertOne(user)
-        .then(result => { res.status(201).json(result)})
+        .findOne({ email: req.body.email})
+        .then((result) => {
+            if (result.error == 'Could not find user') {
+                db.collection('users')
+                    .insertOne(user)
+                    .then(result => { res.status(201).json(result)})
+            } else { 
+                res.status(500).json({error: "Account already exists"})
+            }
+        })
         .catch(err => { res.status(500).json({error: "Could not create new user account"}) });
 });
 
