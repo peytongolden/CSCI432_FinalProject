@@ -34,26 +34,8 @@ connectToDb((err) => {
 //the collections in MongoDB are users and committees
 
 
+
 //routes for user information (/api/user/...)
-
-/*
-// test function
-app.get('/api/user/allUsers', (req, res) => {
-    let users = [];
-
-    db.collection('users')
-        .find()
-        .sort({ name: 1 })
-        .forEach(user => users.push(user))
-        .then(() => {
-            res.status(200).json(users);
-        })
-        .catch(() => {
-            console.error(error);
-            res.status(500).send("Server Error");
-        });
-});
-*/
 
 //new user
 app.post('/api/user/new', (req, res) => {
@@ -117,3 +99,6 @@ app.patch('/api/user/update/:id', (req, res) => {
         })
         .catch(err => res.status(500).json({error: "Server Error"}));
 })
+
+
+// routes for committee info (/api/committee/...)
