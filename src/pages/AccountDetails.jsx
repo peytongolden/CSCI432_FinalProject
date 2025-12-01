@@ -31,6 +31,27 @@ function AccountDetails() {
   const [form, setForm] = useState(userInfo)
   const [errors, setErrors] = useState({})
 
+  // On mount, try to fetch fresh profile from backend if token available
+  useEffect(() => {
+    const token = localStorage.getItem('token')
+    if (!token) return
+    (async () => {
+      try {
+        const res = await fetch('/api/user/me', {
+          headers: { 'Authorization': `Bearer ${token}` }
+        })
+        const data = await res.json()
+        if (res.ok && data.success && data.user) {
+          setUserInfo(data.user)
+          setForm(data.user)
+          try { localStorage.setItem('userInfo', JSON.stringify(data.user)) } catch (e) { console.error(e) }
+        }
+      } catch (e) {
+        console.error('Failed to fetch profile', e)
+      }
+    })()
+  }, [])
+
   useEffect(() => {
     setForm(userInfo)
   }, [userInfo])
@@ -196,7 +217,7 @@ function AccountDetails() {
               <button className="primary" onClick={() => navigate('/lobby')}>
                 Go to Lobby
               </button>
-              <button onClick={() => { localStorage.removeItem('userInfo'); navigate('/login') }}>
+              <button onClick={() => { localStorage.removeItem('userInfo'); localStorage.removeItem('token'); navigate('/login') }}>
                 Logout
               </button>
             </div>

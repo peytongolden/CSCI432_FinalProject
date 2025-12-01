@@ -41,7 +41,7 @@ function Login() {
     if (!validateForm()) return
     
     try {
-      const response = await fetch('/api/login', {
+      const response = await fetch('http://localhost:4000/api/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password })
@@ -50,6 +50,10 @@ function Login() {
       const data = await response.json()
       
       if (response.status === 200 && data.success) {
+        try {
+          if (data.token) localStorage.setItem('token', data.token)
+          if (data.user) localStorage.setItem('userInfo', JSON.stringify(data.user))
+        } catch (e) { console.error('Failed to persist auth info', e) }
         navigate('/meeting')
       } else {
         setError(data.message || 'Login failed')
