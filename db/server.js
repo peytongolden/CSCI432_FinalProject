@@ -58,7 +58,6 @@ app.post('/api/user/new', (req, res) => {
 //get account info
 //takes email for argument, but should probably take ObjectId
 app.get('/api/user/:id', (req, res) => {
-    let users = [];
 
     db.collection('users')
         .findOne({ email: req.params.id })
@@ -69,7 +68,7 @@ app.get('/api/user/:id', (req, res) => {
         })
         .catch(() => {
             console.error(error);
-            res.status(500).send("Server Error");
+            res.status(500).json({error:"Server Error"});
         });
 });
 
@@ -101,4 +100,81 @@ app.patch('/api/user/update/:id', (req, res) => {
 })
 
 
+
 // routes for committee info (/api/committee/...)
+
+//create new committee
+app.post('api/committee/new', (req, res) => {
+    
+    const committee = req.body
+
+    db.collection('committees')
+        .findOne({ CommitteeName: req.body.CommitteeName})
+        .then((result) => {
+            if (result.error == 'Committee Lookup Error') {
+                db.collection('committees')
+                    .insertOne(committee)
+                    .then(result => { res.status(201).json(result)})
+            } else { 
+                res.status(500).json({error: "Committee name already in use"})
+            }
+        })
+        .catch(err => { res.status(500).json({error: "Could not create committee"}) });
+})
+
+//get committee information
+app.get('api/committee/:id', (req, res) => {
+    db.collection('committees')
+        .findOne({ CommitteeName: req.params.id })
+        .then((committee) => {
+            if (committee == null) { 
+                res.status(500).json({error:"Committee Lookup Error"})
+            } else { res.status(200).json(user); }
+        })
+        .catch(() => {
+            console.error(error);
+            res.status(500).json({error:"Server Error"});
+        });
+})
+
+//adds member to committee, adds committee membership to user information
+//takes JSON with: { CommitteeName: String, userID: ObjectId }
+app.post('api/committee/addmember', (req, res) => {
+    const request = req.body;
+
+    if (ObjectId.isValid(request.userID)) {
+
+        const newMember = {
+             uid: request.userID,
+             role: "Member",
+             vote: 0,
+             procon: 0
+        }
+
+        db.collection('committees')
+            .update( {CommitteeName: request.CommitteeName}, { $push: newMember })
+            .then(result => {
+                res.status(200).json(result)
+            })
+            .catch(err => res.status(500).json({error: "Server Error"}));
+    }
+})
+
+//delete committee, takes email for parameter
+//also iterates through user information to delete their memberships
+app.delete('/api/committee/delete/:id', (req, res) => {
+
+    if (ObjectId.isValid(req.params.id)) {
+        db.collection('users')
+            .updateMany({committee_memberships: req.params.id}, {$pull: {committee_memberships: req.params.id}})
+
+        db.collection('committees')
+            .deleteOne({ CommitteeName: req.params.id })
+            .then(result => {
+                if (result.deletedCount == 0) {
+                    res.status(500).json({error:"Could not delete document"})
+                } else { res.status(200).json(result) }
+            })
+            .catch(err => res.status(500).json({error: "Server Error"}));
+    }
+})
