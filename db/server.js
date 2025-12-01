@@ -3,6 +3,7 @@ import 'dotenv/config';
 import express from 'express';
 import cors from 'cors';
 import { connectToDb, getDb } from './db.js';
+import { ObjectId } from 'mongodb';
 
 
 const app = express();
@@ -27,12 +28,17 @@ connectToDb((err) => {
 })
 
 //============================================
-//routes (/api/user/...)
+//routes
 //============================================
 //
-//the collections in MongoDB are Users and Committees
+//the collections in MongoDB are users and committees
 
-app.get('/api/user/all', (req, res) => {
+
+//routes for user information (/api/user/...)
+
+/*
+// test function
+app.get('/api/user/allUsers', (req, res) => {
     let users = [];
 
     db.collection('users')
@@ -47,3 +53,59 @@ app.get('/api/user/all', (req, res) => {
             res.status(500).send("Server Error");
         });
 });
+*/
+
+//new user
+app.post('/api/user/new', (req, res) => {
+    const user = req.body
+
+    db.collection('users')
+        .insertOne(user)
+        .then(result => { res.status(201).json(result)})
+        .catch(err => { res.status(500).json({error: "Could not create new user account"}) });
+});
+
+//get account info
+//takes email for argument, but should probably take ObjectId
+app.get('/api/user/:id', (req, res) => {
+    let users = [];
+
+    db.collection('users')
+        .findOne({ email: req.params.id })
+        .then((user) => {
+            if (user == null) { 
+                res.status(500).json({error:"Could not find user"})
+            } else { res.status(200).json(user); }
+        })
+        .catch(() => {
+            console.error(error);
+            res.status(500).send("Server Error");
+        });
+});
+
+//delete account, takes email for argument
+app.delete('/api/user/delete/:id', (req, res) => {
+
+    db.collection('users')
+        .deleteOne({ email: req.params.id })
+        .then(result => {
+            if (result.deletedCount == 0) {
+                res.status(500).json({error:"Could not delete document"})
+            } else { res.status(200).json(result) }
+        })
+        .catch(err => res.status(500).json({error: "Server Error"}));
+})
+
+//app.post update user information
+app.patch('/api/user/update/:id', (req, res) => {
+    const updates = req.body;
+
+    db.collection('users')
+        .updateOne({ email: req.params.id}, {$set: updates})
+        .then(result => {
+            if (result.modifiedCount == 0) {
+                res.status(500).json({error:"Could not modify document"})
+            } else { res.status(200).json(result) }
+        })
+        .catch(err => res.status(500).json({error: "Server Error"}));
+})
