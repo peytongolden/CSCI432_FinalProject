@@ -1,6 +1,17 @@
-import { getDb } from '../lib/db.js';
+import { MongoClient } from 'mongodb';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
+
+let dbConnection;
+
+async function getDb() {
+  if (!dbConnection) {
+    const client = new MongoClient(process.env.MONGODB_URI);
+    await client.connect();
+    dbConnection = client.db('WebProgFinal');
+  }
+  return dbConnection;
+}
 
 export default async (req, res) => {
   if (req.method !== 'POST') {
