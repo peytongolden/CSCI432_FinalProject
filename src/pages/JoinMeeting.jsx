@@ -108,9 +108,10 @@ function JoinMeeting() {
         }
 
         // request to join
+        const token = localStorage.getItem('token')
         const joinRes = await fetch(`/api/meetings/${meeting._id || meeting.meetingId}/join`, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
           body: JSON.stringify({ displayName })
         })
 
