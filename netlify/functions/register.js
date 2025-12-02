@@ -14,6 +14,15 @@ async function getDb() {
 }
 
 export default async (req, res) => {
+  // Set CORS headers
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
+
+  if (req.method === 'OPTIONS') {
+    return res.status(200).end();
+  }
+
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
@@ -44,7 +53,7 @@ export default async (req, res) => {
     const result = await db.collection('users').insertOne(userDoc);
     return res.status(200).json({ success: true, user: { id: result.insertedId, name, email } });
   } catch (err) {
-    console.error(err);
-    return res.status(500).json({ success: false, message: 'Server error' });
+    console.error('Registration error:', err);
+    return res.status(500).json({ success: false, message: 'Server error: ' + err.message });
   }
 };
