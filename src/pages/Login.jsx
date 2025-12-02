@@ -1,7 +1,6 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import './Login.css'
-const API_BASE = import.meta.env.VITE_API_BASE || ''
 
 function Login() {
   const [email, setEmail] = useState('')
@@ -42,7 +41,7 @@ function Login() {
     if (!validateForm()) return
     
     try {
-      const response = await fetch(`${API_BASE}/api/login`, {
+      const response = await fetch('/.netlify/functions/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password })
