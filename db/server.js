@@ -397,15 +397,14 @@ app.post('/api/committee/updateRole/', authenticateToken, async (req, res) => {
     }
 })
 
-//patch method for updating motions and setting the meeting
+//patch method for updating motions and setting the meeting flag.
 //id is ObjectId of committee
-app.patch('/api/committee/updateCommitteeInfo/:id', (req, res) => {
+app.patch('/api/committee/updatecommitteeinfo/:id', authenticateToken, (req, res) => {
     const updates = req.body
 
     if (ObjectId.isValid(req.params.id)) {
         db.collection('committees')
-            //.findOne( {_id: ObjectId(request.CommitteeID) })
-            .updateOne( {_id: ObjectId(request.CommitteeID)}, { $set: updates} )
+            .updateOne( {_id: new ObjectId(req.params.id)}, { $set: updates} )
             .then(result => {
                 res.status(200).json(result)
             })
