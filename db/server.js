@@ -213,23 +213,22 @@ app.patch('/api/user/update/:id', authenticateToken, (req, res) => {
             "Members": [],                          //Becomes an array of JSON objects
             "ActiveMeeting": false                  //Boolean                 
         },
-        "userID": ObjectId of user                  //adds the new committee's _id to user's committee_memberships field
+        "userEmail": String                         //adds the new committee's _id to user's committee_memberships field
     }
 */
-app.post('/api/committee/new', authenticateToken, (req, res) => {
+app.post('/api/committee/new', authenticateToken, async (req, res) => {
 
     const committee = req.body.committee
-    const user = req.body.userID
+    const user = await db.collection('users').findOne({ email: req.body.userEmail })
 
     db.collection('committees')
         .findOne({ CommitteeName: committee.CommitteeName})
         .then((result) => {
             if (result) { res.status(500).json({error: "Committee name already in use"}) }
-
             else {
-
+                
                 const owner = {
-                    uid: user,
+                    uid: user._id.toString(),
                     role: "Owner",
                     vote: 0,
                     procon: 0
@@ -240,8 +239,9 @@ app.post('/api/committee/new', authenticateToken, (req, res) => {
                 db.collection('committees')
                     .insertOne(committee)
                     .then((result2) => {
-                        db.collection('users')
-                            .updateOne({ _id: new ObjectId(user) }, { $push: { committee_memberships: result2.insertedId }});
+                        console.log(result2.insertedId.toString())
+                        db.collection('users').updateOne({email: req.body.userEmail}, {$push: { committee_memberships: result2.insertedId.toString()} })
+                            .catch(err => res.status(500).json({error: "Server Error"}))
                         
                         res.status(201).json(result2)
                     })
@@ -414,18 +414,19 @@ app.patch('/api/committee/updatecommitteeinfo/:id', authenticateToken, (req, res
     }
 })
 
-//delete committee, takes ObjectId for parameter
+//delete committee, takes string version of ObjectId for parameter
 //also iterates through user information to delete their memberships
-app.delete('/api/committee/delete/:id', (req, res) => {
+app.delete('/api/committee/delete/:id', authenticateToken, (req, res) => {
 
     if (ObjectId.isValid(req.params.id)) {
         db.collection('users')
-            .updateMany({committee_memberships: { $in: ObjectId(req.params.id)}}, {$pull: {committee_memberships: req.params.id}})
+            .updateMany({}, {$pull: {committee_memberships: { $in: [ req.params.id ]}}})
             .catch(err => res.status(500).json({error: "Server Error"}));
 
         db.collection('committees')
-            .deleteOne({ CommitteeName: req.params.id })
+            .deleteOne({ _id: new ObjectId(req.params.id) })
             .then(result => {
+                console.log(result)
                 if (result.deletedCount == 0) {
                     res.status(500).json({error:"Could not delete document"})
                 } else { res.status(200).json(result) }
