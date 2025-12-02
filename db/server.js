@@ -246,8 +246,6 @@ app.post('/api/committee/new', authenticateToken, (req, res) => {
                         res.status(201).json(result2)
                     })
                     .catch(err => { res.status(500).json({error: "Could not create committee"}) });
-
-               
             }
         })
 })
@@ -268,6 +266,50 @@ app.get('/api/committee/:id', authenticateToken, (req, res) => {
         });
 })
 
+//adds member to committee, adds committee membership to user information
+//takes JSON with: { CommitteeID: ObjectId, userEmail: String }
+app.post('/api/committee/addmember', authenticateToken, async (req, res) => {
+    const request = req.body;
+    const user = await db.collection('users').findOne({email: request.userEmail})
+    //checks that user exists
+    if (user) {
+
+        //checks that user is not already in committee
+        const committeeCheck = await db.collection('committees').findOne({_id: new ObjectId(request.CommitteeID)})
+
+        let flag
+
+        committeeCheck.Members.forEach(element => {
+            if (element.uid == user._id.toString()) { flag = true; }    
+        });
+
+        if (flag) {res.status(500).json({error: "User is already in committee"})}
+        
+        else {
+        //adds committee to user membership list
+        db.collection('users').updateOne({email: request.userEmail}, {$push: { committee_memberships: request.CommitteeID} })
+            .catch(err => res.status(500).json({error: "Server Error"}))
+
+        const newMember = {
+                uid: user._id.toString(),
+                role: "Member",
+                vote: 0,
+                procon: 0
+            }
+
+            db.collection('committees')
+                .updateOne( {_id: new ObjectId(request.CommitteeID)}, { $push: {Members: newMember} })
+                .then(result => {
+                    res.status(200).json(result)
+                })
+                .catch(err => res.status(500).json({error: "Server Error"}));
+        }
+
+    } else {
+        res.status(500).json({error: "User does not exist"})
+    }
+})
+
 
 
 
@@ -279,46 +321,7 @@ app.get('/api/committee/:id', authenticateToken, (req, res) => {
 
 
 
-//adds member to committee, adds committee membership to user information
-//takes JSON with: { CommitteeID: ObjectId, userEmail: String } userID
-app.post('/api/committee/addmember', (req, res) => {
-    const request = req.body;
-    let user = db.collection('users').find({email: request.userEmail}).catch(err => res.status(500).json({error: "Server Error"}))
 
-    //checks that user exists
-    if (user) {
-
-        //checks that user is not already in committee
-        const committeeCheck = db.collection('committees').findOne( {_id: ObjectId(request.body.CommitteeID)})
-        if (() => {
-            committeeCheck.Members.array.forEach(element => {
-                if (ObjectId(element.uid) == user._id) { return true; }
-            });
-        }) {
-            //adds committee to user membership list
-            db.collection('users').update({email: request.userEmail}, {$push: { committee_memberships: request.CommitteeID} })
-                .catch(err => res.status(500).json({error: "Server Error"}))
-
-            const newMember = {
-                uid: request.uid,
-                role: "Member",
-                vote: 0,
-                procon: 0
-            }
-
-            db.collection('committees')
-                .update( {CommitteeName: request.CommitteeName}, { $push: {Members: newMember} })
-                .then(result => {
-                    res.status(200).json(result)
-                })
-                .catch(err => res.status(500).json({error: "Server Error"}));
-        } else {
-            res.status(500).json({error: "User is already in committee"})
-        }
-    } else {
-        res.status(500).json({error: "User does not exist"})
-    }
-})
 
 //remove user from committee
 //JSON: { CommitteeID: ObjectId
@@ -417,4 +420,4 @@ app.delete('/api/committee/delete/:id', (req, res) => {
 })
 
 
-//TODO UpdateMotionHistory, VetoMotion, Vote, Second, CallForAmendment, SecondMotion
+//TODO UpdateMotionHistory, VetoMotion, Vote, Second, CallForAmendment, SecondMotion, 
