@@ -19,6 +19,7 @@ function App() {
         <Route path="/lobby" element={<CreateJoinMeeting />} />
         <Route path="/create-meeting" element={<CreateMeeting />} />
         <Route path="/join-meeting" element={<JoinMeeting />} />
+        {/* committee pages removed — uses per-committee meeting flows instead */}
         <Route path="/meeting" element={<Meeting />} />
         <Route path="/help" element={<Help />} />
       </Routes>

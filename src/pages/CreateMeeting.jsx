@@ -17,12 +17,37 @@ function CreateMeeting() {
         const res = await fetch('/api/user/me', { headers: token ? { Authorization: `Bearer ${token}` } : undefined })
             if (res.ok) {
               const data = await res.json()
-              if (mounted && data && data.user && Array.isArray(data.user.groups)) {
-                setGroups(data.user.groups)
-                setSelectedGroups(data.user.groups.length ? [data.user.groups[0].id] : [])
-            setLoadingGroups(false)
-            return
-          }
+              if (mounted && data && data.user) {
+                // If the user object already contains `groups` (frontend-shaped), use it
+                if (Array.isArray(data.user.groups) && data.user.groups.length) {
+                  setGroups(data.user.groups)
+                  setSelectedGroups(data.user.groups.length ? [data.user.groups[0].id] : [])
+                  setLoadingGroups(false)
+                  return
+                }
+
+                // Otherwise, try to load full committee docs from committee_memberships (ObjectId array)
+                if (Array.isArray(data.user.committee_memberships) && data.user.committee_memberships.length) {
+                  const ids = data.user.committee_memberships.map(String)
+                  const fetched = await Promise.all(ids.map(async (id) => {
+                    try {
+                      const r = await fetch(`/api/committee/${encodeURIComponent(id)}`, { headers: token ? { Authorization: `Bearer ${token}` } : undefined })
+                      if (!r.ok) return null
+                      const committee = await r.json().catch(() => null)
+                      if (!committee) return null
+                      return { id: String(committee._id || committee._id?.toString?.()), name: committee.CommitteeName || committee.name }
+                    } catch (err) { return null }
+                  }))
+
+                  const final = fetched.filter(Boolean)
+                  if (final.length) {
+                    setGroups(final)
+                    setSelectedGroups(final.length ? [final[0].id] : [])
+                    setLoadingGroups(false)
+                    return
+                  }
+                }
+              }
         }
       } catch (err) {}
 
@@ -30,10 +55,20 @@ function CreateMeeting() {
         const raw = localStorage.getItem('userInfo')
         if (raw) {
           const u = JSON.parse(raw)
-          if (u && Array.isArray(u.groups) && u.groups.length) {
-            if (mounted) {
-              setGroups(u.groups)
-              setSelectedGroups(u.groups.length ? [u.groups[0].id] : [])
+          if (u) {
+            if (Array.isArray(u.groups) && u.groups.length) {
+              if (mounted) {
+                setGroups(u.groups)
+                setSelectedGroups(u.groups.length ? [u.groups[0].id] : [])
+              }
+            } else if (Array.isArray(u.committee_memberships) && u.committee_memberships.length) {
+              // localStorage doesn't have committee docs — show lightweight placeholders so UI isn't empty
+              const ids = u.committee_memberships.map(id => String(id))
+              const placeholders = ids.map(id => ({ id, name: `Committee ${id.slice(0, 6)}` }))
+              if (mounted) {
+                setGroups(placeholders)
+                setSelectedGroups(placeholders.length ? [placeholders[0].id] : [])
+              }
             }
           }
         }

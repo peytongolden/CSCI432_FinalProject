@@ -16,11 +16,34 @@ function JoinMeeting() {
         const res = await fetch('/api/user/me', { headers: token ? { Authorization: `Bearer ${token}` } : undefined })
         if (res.ok) {
           const data = await res.json()
-          if (mounted && data && data.user && Array.isArray(data.user.groups)) {
-            setGroups(data.user.groups)
-            setSelectedGroup(data.user.groups[0]?.id ?? '')
-            setLoadingGroups(false)
-            return
+          if (mounted && data && data.user) {
+            if (Array.isArray(data.user.groups) && data.user.groups.length) {
+              setGroups(data.user.groups)
+              setSelectedGroup(data.user.groups[0]?.id ?? '')
+              setLoadingGroups(false)
+              return
+            }
+
+            if (Array.isArray(data.user.committee_memberships) && data.user.committee_memberships.length) {
+              const ids = data.user.committee_memberships.map(String)
+              const fetched = await Promise.all(ids.map(async (id) => {
+                try {
+                  const r = await fetch(`/api/committee/${encodeURIComponent(id)}`, { headers: token ? { Authorization: `Bearer ${token}` } : undefined })
+                  if (!r.ok) return null
+                  const committee = await r.json().catch(() => null)
+                  if (!committee) return null
+                  return { id: String(committee._id || committee._id?.toString?.()), name: committee.CommitteeName || committee.name }
+                } catch (err) { return null }
+              }))
+
+              const final = fetched.filter(Boolean)
+              if (final.length) {
+                setGroups(final)
+                setSelectedGroup(final[0].id ?? '')
+                setLoadingGroups(false)
+                return
+              }
+            }
           }
         }
       } catch (err) {
@@ -31,10 +54,19 @@ function JoinMeeting() {
         const raw = localStorage.getItem('userInfo')
         if (raw) {
           const u = JSON.parse(raw)
-          if (u && Array.isArray(u.groups) && u.groups.length) {
-            if (mounted) {
-              setGroups(u.groups)
-              setSelectedGroup(u.groups[0].id ?? '')
+          if (u) {
+            if (Array.isArray(u.groups) && u.groups.length) {
+              if (mounted) {
+                setGroups(u.groups)
+                setSelectedGroup(u.groups[0].id ?? '')
+              }
+            } else if (Array.isArray(u.committee_memberships) && u.committee_memberships.length) {
+              const ids = u.committee_memberships.map(id => String(id))
+              const placeholders = ids.map(id => ({ id, name: `Committee ${id.slice(0,6)}` }))
+              if (mounted) {
+                setGroups(placeholders)
+                setSelectedGroup(placeholders[0].id ?? '')
+              }
             }
           }
         }
