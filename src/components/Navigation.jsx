@@ -31,6 +31,12 @@ function Navigation() {
           Account
         </Link>
         <Link 
+          to="/help" 
+          className={`nav-link ${isActive('/help') ? 'active' : ''}`}
+        >
+          Help
+        </Link>
+        <Link 
           to="/login" 
           className="nav-link logout"
         >
