@@ -311,8 +311,8 @@ app.post('/api/committee/addmember', authenticateToken, async (req, res) => {
 })
 
 //remove user from committee
-//JSON: { CommitteeID: ObjectId
-app.post('/api/committee/removemember', async (req, res) => {
+//JSON: { CommitteeID: ObjectId, userEmail: String }
+app.post('/api/committee/removemember', authenticateToken, async (req, res) => {
     const request = req.body;
     const user = await db.collection('users').findOne({email: request.userEmail})
     //checks that user exists
@@ -371,15 +371,25 @@ app.post('/api/committee/removemember', async (req, res) => {
 
 
 //update committee information. Single function with multiple uses
-//JSON: { CommitteeID: ObjectId, UserID: ObjectId, newRole:string } 
-app.post('/api/committee/updateRole/', (req, res) => {
+//JSON: { CommitteeID: ObjectId, userEmail: String, newRole:string } 
+app.post('/api/committee/updateRole/', authenticateToken, async (req, res) => {
     const request = req.body
+    const user = await db.collection('users').findOne({email: request.userEmail})
 
     if (ObjectId.isValid(request.CommitteeID)) {
         
+        let tempCommittees = await db.collection('committees').findOne({_id: new ObjectId(request.CommitteeID)})
+        let x = 0
+        
+        tempCommittees.Members.forEach((element) => {
+            if (element.uid == user._id.toString()) { element.role = request.newRole; return; }
+            x++
+        })
+        
+        console.log(tempCommittees)
+
         db.collection('committees')
-            //.findOne( {_id: ObjectId(request.CommitteeID) })
-            .updateOne( {_id: ObjectId(request.CommitteeID), "Members.uid": ObjectId(request.UserID)}, { $set: {"Members.$.role": request.newRole}} )
+            .updateOne( {_id: new ObjectId(request.CommitteeID)}, { $set: {Members: tempCommittees.Members}} )
             .then(result => {
                 res.status(200).json(result)
             })
