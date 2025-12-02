@@ -310,6 +310,55 @@ app.post('/api/committee/addmember', authenticateToken, async (req, res) => {
     }
 })
 
+//remove user from committee
+//JSON: { CommitteeID: ObjectId
+app.post('/api/committee/removemember', async (req, res) => {
+    const request = req.body;
+    const user = await db.collection('users').findOne({email: request.userEmail})
+    //checks that user exists
+    if (user) {
+
+        //checks that user is in committee
+        const committeeCheck = await db.collection('committees').findOne({_id: new ObjectId(request.CommitteeID)})
+
+        let flag
+
+        committeeCheck.Members.forEach(element => {
+            if (element.uid == user._id.toString()) { flag = true; }    
+        });
+
+        if (!flag) {res.status(500).json({error: "User is not in committee"})}
+        
+        else {
+        //removes committee to user membership list
+        db.collection('users').updateOne({email: request.userEmail}, {$pull: { committee_memberships: request.CommitteeID} })
+            .catch(err => res.status(500).json({error: "Server Error"}))
+
+
+        let tempArray = await db.collection('committees')
+            .findOne( {_id: new ObjectId(request.CommitteeID)})
+
+        console.log(tempArray)
+        
+        let x = 0
+        tempArray.Members.forEach((element) => {
+            if (element.uid == user._id.toString()) { tempArray.Members.splice(x, 1); return }
+            x++
+        })
+
+
+        db.collection('committees')
+            .updateOne({_id: new ObjectId(request.CommitteeID)}, { $set: { Members: tempArray.Members }})
+            .then((result) => { res.status(200).json(result)})
+        }
+
+    } else {
+        res.status(500).json({error: "User does not exist"})
+    }
+})
+
+
+
 
 
 
@@ -320,49 +369,6 @@ app.post('/api/committee/addmember', authenticateToken, async (req, res) => {
 
 
 
-
-
-
-//remove user from committee
-//JSON: { CommitteeID: ObjectId
-app.post('/api/committee/removemember', (req, res) => {
-    const request = req.body;
-    let user = db.collection('users').find({email: request.userEmail}).catch(err => res.status(500).json({error: "Server Error"}))
-
-    //checks that user exists
-    if (user) {
-
-        //checks that user is not already in committee
-        const committeeCheck = db.collection('committees').findOne( {_id: ObjectId(request.body.CommitteeID)})
-        if (() => {
-            committeeCheck.Members.array.forEach(element => {
-                if (ObjectId(element.uid) == user._id) { return true; }
-            });
-        }) {
-            //adds committee to user membership list
-            db.collection('users').update({email: request.userEmail}, {$pull: { committee_memberships: request.CommitteeID} })
-                .catch(err => res.status(500).json({error: "Server Error"}))
-
-            const newMember = {
-                uid: request.uid,
-                role: "Member",
-                vote: 0,
-                procon: 0
-            }
-
-            db.collection('committees')
-                .update( {CommitteeName: request.CommitteeName}, { $pull: {Members: newMember} })
-                .then(result => {
-                    res.status(200).json(result)
-                })
-                .catch(err => res.status(500).json({error: "Server Error"}));
-        } else {
-            res.status(500).json({error: "User is already in committee"})
-        }
-    } else {
-        res.status(500).json({error: "User does not exist"})
-    }
-})
 
 //update committee information. Single function with multiple uses
 //JSON: { CommitteeID: ObjectId, UserID: ObjectId, newRole:string } 
