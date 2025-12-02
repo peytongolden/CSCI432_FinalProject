@@ -122,7 +122,7 @@ npm run preview  # Preview production build
 - `Registration.jsx` - User registration
 - `AccountDetails.jsx` - Account profile
 - `CreateJoinMeeting.jsx` - Lobby page
-- `Meeting.jsx` - ⭐ **Your main contribution**
+- `Meeting.jsx` - Meeting page
 
 ### src/components/
 - `MembersList.jsx` - Member display
