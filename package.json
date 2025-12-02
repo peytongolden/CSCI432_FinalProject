@@ -13,16 +13,18 @@
   "dependencies": {
     "@vitejs/plugin-react": "^5.0.4",
     "axios": "^1.13.2",
+    "bcryptjs": "^2.4.3",
     "cors": "^2.8.5",
     "dotenv": "^17.2.3",
-    "express": "^5.1.0",
-    "mongodb": "^7.0.0",
-    "nodemon": "^3.1.11",
-    "bcryptjs": "^2.4.3",
+    "express": "^5.2.1",
     "jsonwebtoken": "^9.0.0",
+    "mongodb": "^7.0.0",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
     "react-router-dom": "^7.9.4",
     "vite": "^7.1.11"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.11"
   }
 }

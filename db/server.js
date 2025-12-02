@@ -377,6 +377,7 @@ app.post('/api/committee/updateRole/', authenticateToken, async (req, res) => {
     }
 })
 
+<<<<<<< Updated upstream
 
 // patch method for updating motions and setting the meeting flag.
 // id is ObjectId of committee
@@ -395,6 +396,134 @@ app.patch('/api/committee/updatecommitteeinfo/:id', authenticateToken, (req, res
             .catch(err => res.status(500).json({error: "Server Error"}));
     } else {
         res.status(500).json({error: "Invalid Committee ID"})
+=======
+//patch method for updating motions and setting the meeting
+//id is ObjectId of committee
+// Accept committee updates by either route param or a CommitteeID in the body
+function handleUpdateCommitteeInfo(req, res) {
+    const updates = req.body || {}
+    const providedId = req.body?.CommitteeID || req.params?.id
+
+    if (!providedId) return res.status(400).json({ error: 'CommitteeID is required (body.CommitteeID or URL param)' })
+
+    if (!ObjectId.isValid(providedId)) return res.status(400).json({ error: 'Invalid Committee ID' })
+
+    const idObj = new ObjectId(providedId)
+    db.collection('committees')
+        .updateOne({ _id: idObj }, { $set: updates })
+        .then(result => res.status(200).json(result))
+        .catch(err => {
+            console.error(err)
+            res.status(500).json({ error: 'Server Error' })
+        })
+}
+
+app.patch('/api/committee/updateCommitteeInfo/:id', handleUpdateCommitteeInfo)
+app.patch('/api/committee/updateCommitteeInfo', handleUpdateCommitteeInfo)
+
+// ----------------------------
+// Meeting endpoints
+// ----------------------------
+
+function generateMeetingCode(len = 6) {
+    const chars = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789' // avoid ambiguous ones
+    let out = ''
+    for (let i = 0; i < len; i++) out += chars[Math.floor(Math.random() * chars.length)]
+    return out
+}
+
+// Create a new meeting
+// Body: { name, datetime, description, committeeIds: [id, ...] }
+app.post('/api/meetings', authenticateToken, async (req, res) => {
+    const { name, datetime, description, committeeIds } = req.body || {}
+    if (!name) return res.status(400).json({ success: false, message: 'Meeting name required' })
+
+    try {
+        const meeting = {
+            name,
+            description: description || '',
+            datetime: datetime || null,
+            committeeIds: Array.isArray(committeeIds) ? committeeIds.map(id => ObjectId.isValid(id) ? new ObjectId(id) : id) : [],
+            createdBy: req.userId || null,
+            code: generateMeetingCode(),
+            active: true,
+            participants: [],
+            createdAt: new Date()
+        }
+
+        const result = await db.collection('meetings').insertOne(meeting)
+
+        // Optionally mark referenced committees as having an active meeting
+        if (Array.isArray(meeting.committeeIds) && meeting.committeeIds.length) {
+            for (const cid of meeting.committeeIds) {
+                try {
+                    await db.collection('committees')
+                        .updateOne({ _id: new ObjectId(cid) }, { $set: { ActiveMeeting: result.insertedId.toString() } })
+                } catch (e) {
+                    // ignore failed updates for committees
+                    console.warn('Failed to update committee ActiveMeeting', cid, e)
+                }
+            }
+        }
+
+        return res.status(201).json({ success: true, meetingId: result.insertedId, code: meeting.code })
+    } catch (err) {
+        console.error(err)
+        return res.status(500).json({ success: false, message: 'Server error' })
+    }
+})
+
+// Fetch meeting by id
+app.get('/api/meetings/:id', async (req, res) => {
+    try {
+        if (!ObjectId.isValid(req.params.id)) return res.status(400).json({ success: false, message: 'Invalid id' })
+        const meet = await db.collection('meetings').findOne({ _id: new ObjectId(req.params.id) })
+        if (!meet) return res.status(404).json({ success: false, message: 'Meeting not found' })
+        return res.status(200).json({ success: true, meeting: meet })
+    } catch (err) {
+        console.error(err)
+        return res.status(500).json({ success: false, message: 'Server error' })
+    }
+})
+
+// Fetch by code
+app.get('/api/meetings/code/:code', async (req, res) => {
+    try {
+        const code = req.params.code
+        if (!code) return res.status(400).json({ success: false, message: 'Code required' })
+        const meet = await db.collection('meetings').findOne({ code: code, active: true })
+        if (!meet) return res.status(404).json({ success: false, message: 'Meeting not found' })
+        return res.status(200).json({ success: true, meeting: meet })
+    } catch (err) {
+        console.error(err)
+        return res.status(500).json({ success: false, message: 'Server error' })
+    }
+})
+
+// Join meeting
+// Body: { displayName }
+app.post('/api/meetings/:id/join', async (req, res) => {
+    try {
+        if (!ObjectId.isValid(req.params.id)) return res.status(400).json({ success: false, message: 'Invalid meeting id' })
+        const meetingId = new ObjectId(req.params.id)
+        const { displayName } = req.body || {}
+        if (!displayName) return res.status(400).json({ success: false, message: 'displayName required' })
+
+        const participant = {
+            _id: new ObjectId(),
+            name: displayName,
+            joinedAt: new Date(),
+            uid: null
+        }
+
+        const result = await db.collection('meetings').updateOne({ _id: meetingId }, { $push: { participants: participant } })
+        if (result.modifiedCount === 0) return res.status(500).json({ success: false, message: 'Could not add participant' })
+
+        return res.status(200).json({ success: true, participantId: participant._id, meetingId })
+    } catch (err) {
+        console.error(err)
+        return res.status(500).json({ success: false, message: 'Server error' })
+>>>>>>> Stashed changes
     }
 })
 

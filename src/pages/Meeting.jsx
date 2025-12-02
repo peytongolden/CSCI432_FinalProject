@@ -10,7 +10,7 @@ import MotionHistory from '../components/MotionHistory'
 import Navigation from '../components/Navigation'
 
 function Meeting() {
-  const [committee] = useState({
+  const [committee, setCommittee] = useState({
     id: 1,
     name: 'Budget Committee',
     sessionActive: true
@@ -52,6 +52,45 @@ function Meeting() {
     hasVoted: false,
     vote: null
   })
+
+  // if meetingId and participantId are in the query we will try to retrieve a real meeting
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search)
+    const meetingId = params.get('meetingId')
+    const participantId = params.get('participantId')
+
+    if (!meetingId) return
+
+    ;(async () => {
+      try {
+        const res = await fetch(`/api/meetings/${encodeURIComponent(meetingId)}`)
+        if (!res.ok) return
+        const body = await res.json().catch(() => null)
+        if (!body || !body.meeting) return
+
+        const meet = body.meeting
+
+        // update committee name (use meeting name)
+        if (meet.name) {
+          setCommittee(prev => ({ ...prev, name: meet.name, sessionActive: !!meet.active }))
+        }
+
+        // set members from participants
+        if (Array.isArray(meet.participants) && meet.participants.length) {
+          const mapped = meet.participants.map((p, idx) => ({ id: idx + 1, name: p.name || 'Guest', role: 'member', vote: null }))
+          setMembers(mapped)
+        }
+
+        // if we have a participantId, try to make them the current user
+        if (participantId && Array.isArray(meet.participants)) {
+          const found = meet.participants.find(p => String(p._id) === String(participantId) || String(p._id?.$oid) === String(participantId))
+          if (found) setCurrentUser(prev => ({ ...prev, id: found._id || participantId, name: found.name || prev.name }))
+        }
+      } catch (err) {
+        console.warn('Could not load meeting details', err)
+      }
+    })()
+  }, [])
 
   const [showControlsModal, setShowControlsModal] = useState(false)
   const [showNewMotionModal, setShowNewMotionModal] = useState(false)

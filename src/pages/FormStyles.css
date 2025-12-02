@@ -68,3 +68,42 @@
     width: 100%;
   }
 }
+
+  /* Committees / group UI used by Create/Join pages */
+  .committees-section {
+    margin-bottom: 18px;
+  }
+
+  .committees-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .committees-title {
+    font-size: 0.95rem;
+    font-weight: 700;
+    margin: 0;
+    color: var(--pakistan-green);
+  }
+
+  .committees-controls {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+    margin-top: 8px;
+  }
+
+  .committees-select {
+    padding: 8px 10px;
+    border-radius: 6px;
+    border: 1px solid rgba(0,0,0,0.08);
+    background: white;
+    color: var(--pakistan-green);
+    min-width: 220px;
+  }
+
+  .committees-meta { font-size: 13px; color: #444; }
+
+  .committees-loading { margin-bottom: 16px; color: #666; }
+  .committees-empty { margin-top: 8px; color: #666; }
