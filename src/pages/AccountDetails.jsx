@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import './Login.css'
 import './AccountDetails.css'
+import './FormStyles.css'
 import Navigation from '../components/Navigation'
 
 function AccountDetails() {
