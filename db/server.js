@@ -51,31 +51,13 @@ function authenticateToken(req, res, next) {
 
 
 
-//routes for user information (/api/user/...)
-
-//new user
-//deprecated already?
-/*
-app.post('/api/user/new', (req, res) => {
-    const user = req.body
-
-    db.collection('users')
-        .findOne({ email: req.body.email })
-        .then((result) => {
-            if (!result) {
-                db.collection('users')
-                    .insertOne(user)
-                    .then(result => { res.status(201).json(result)})
-            } else { 
-                res.status(500).json({error: "Account already exists"})
-            }
-        })
-        .catch(err => { res.status(500).json({error: "Could not create new user account"}) });
-});
-*/
-
 // Registration endpoint (used by frontend)
-// Input JSON: { name: String, email: String, password: String }
+// Input JSON: { 
+//      name: String, 
+//      email: String, 
+//      password: String 
+//  }
+
 app.post('/api/register', async (req, res) => {
     const { name, email, password } = req.body;
     if (!name || !email || !password) return res.status(400).json({ success: false, message: 'Name, email and password are required' });
@@ -102,8 +84,13 @@ app.post('/api/register', async (req, res) => {
     }
 });
 
+
 // Login endpoint
-// Input JSON: { email:String, password:String } 
+// Input JSON: {
+//      email: String,
+//      password: String
+//  } 
+
 app.post('/api/login', async (req, res) => {
     const { email, password } = req.body;
     if (!email || !password) return res.status(400).json({ success: false, message: 'Email and password required' });
@@ -133,8 +120,10 @@ app.post('/api/login', async (req, res) => {
     }
 });
 
+
 // Get current user using token
 // No arguments
+
 app.get('/api/user/me', authenticateToken, async (req, res) => {
     try {
         const user = await db.collection('users').findOne({ _id: new ObjectId(req.userId) });
@@ -147,27 +136,10 @@ app.get('/api/user/me', authenticateToken, async (req, res) => {
     }
 });
 
-//get account info
-//deprecated
-/*
-app.get('/api/user/:id', (req, res) => {
-
-    db.collection('users')
-        .findOne({ email: req.params.id })
-        .then((user) => {
-            if (user == null) { 
-                res.status(500).json({error:"Could not find user"})
-            } else { res.status(200).json(user); }
-        })
-        .catch(() => {
-            console.error(error);
-            res.status(500).json({error:"Server Error"});
-        });
-});
-*/
 
 // delete account
 // id parameter is user's email
+
 app.delete('/api/user/delete/:id', authenticateToken, (req, res) => {
 
     db.collection('users')
@@ -180,9 +152,12 @@ app.delete('/api/user/delete/:id', authenticateToken, (req, res) => {
         .catch(err => res.status(500).json({error: "Server Error"}));
 })
 
+
 // update user information
 // id is user email
-// required JSON { <field.: <new value> }
+// required JSON { <field>: <new value>, <field2> : <new value 2>, ... }
+// Do not use this API to modify committee_memberships, use a different API instead
+
 app.patch('/api/user/update/:id', authenticateToken, (req, res) => {
     const updates = req.body;
 
@@ -201,10 +176,10 @@ app.patch('/api/user/update/:id', authenticateToken, (req, res) => {
 //=================================================================================================================================================
 // routes for committee info (/api/committee/...)
 
+
 //create new committee
 //Required JSON:
-/*
-    {
+/*  {
         "committee": {
             "CommitteeName": String,                
             "PrimaryMotion": "",
@@ -214,8 +189,8 @@ app.patch('/api/user/update/:id', authenticateToken, (req, res) => {
             "ActiveMeeting": false                  //Boolean                 
         },
         "userEmail": String                         //adds the new committee's _id to user's committee_memberships field
-    }
-*/
+    }*/
+
 app.post('/api/committee/new', authenticateToken, async (req, res) => {
 
     const committee = req.body.committee
@@ -250,8 +225,10 @@ app.post('/api/committee/new', authenticateToken, async (req, res) => {
         })
 })
 
+
 //get committee information
-//id is committee's ObjectId
+//id is committee's String version of ObjectId
+
 app.get('/api/committee/:id', authenticateToken, (req, res) => {
     db.collection('committees')
         .findOne({ _id: new ObjectId(req.params.id) })
@@ -266,8 +243,13 @@ app.get('/api/committee/:id', authenticateToken, (req, res) => {
         });
 })
 
+
 //adds member to committee, adds committee membership to user information
-//takes JSON with: { CommitteeID: ObjectId, userEmail: String }
+//input JSON: { 
+//      CommitteeID: String version of ObjectId,
+//      userEmail: String
+//  }
+
 app.post('/api/committee/addmember', authenticateToken, async (req, res) => {
     const request = req.body;
     const user = await db.collection('users').findOne({email: request.userEmail})
@@ -310,8 +292,13 @@ app.post('/api/committee/addmember', authenticateToken, async (req, res) => {
     }
 })
 
-//remove user from committee
-//JSON: { CommitteeID: ObjectId, userEmail: String }
+
+// remove user from committee
+// JSON: { 
+//      CommitteeID: String version of ObjectId,
+//      userEmail: String
+//  }
+
 app.post('/api/committee/removemember', authenticateToken, async (req, res) => {
     const request = req.body;
     const user = await db.collection('users').findOne({email: request.userEmail})
@@ -358,20 +345,13 @@ app.post('/api/committee/removemember', authenticateToken, async (req, res) => {
 })
 
 
+// Changes committee role of target user.
+// input JSON: {
+//      CommitteeID: String version of ObjectId,
+//      userEmail: String,
+//      newRole:string
+//  } 
 
-
-
-
-//!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-// WOE! UNTESTED PAST HERE, tread carefully!
-//!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-
-
-
-
-
-//update committee information. Single function with multiple uses
-//JSON: { CommitteeID: ObjectId, userEmail: String, newRole:string } 
 app.post('/api/committee/updateRole/', authenticateToken, async (req, res) => {
     const request = req.body
     const user = await db.collection('users').findOne({email: request.userEmail})
@@ -397,8 +377,12 @@ app.post('/api/committee/updateRole/', authenticateToken, async (req, res) => {
     }
 })
 
-//patch method for updating motions and setting the meeting flag.
-//id is ObjectId of committee
+
+// patch method for updating motions and setting the meeting flag.
+// id is ObjectId of committee
+// Do not use to edit MotionHistory or Members array.
+
+
 app.patch('/api/committee/updatecommitteeinfo/:id', authenticateToken, (req, res) => {
     const updates = req.body
 
@@ -414,8 +398,10 @@ app.patch('/api/committee/updatecommitteeinfo/:id', authenticateToken, (req, res
     }
 })
 
+
 //delete committee, takes string version of ObjectId for parameter
 //also iterates through user information to delete their memberships
+
 app.delete('/api/committee/delete/:id', authenticateToken, (req, res) => {
 
     if (ObjectId.isValid(req.params.id)) {
@@ -436,4 +422,22 @@ app.delete('/api/committee/delete/:id', authenticateToken, (req, res) => {
 })
 
 
-//TODO UpdateMotionHistory, VetoMotion, Vote, Second, CallForAmendment, SecondMotion, 
+// update motion history with current motion, then clears fields
+// input JSON: {
+//      CommitteeID: String version of ObjectId,
+//      newMotion: {
+//          DateTime: String,       //ISO-8601 timestamp
+//          MotionName: String,
+//          MotionDescription: String,
+//          MotionPros: [String],
+//          MotionCons: [string,
+//          VotesFor: [String],
+//          VotesAgainst [String],
+//      }
+//  ""
+
+app.post('/api/committee/updatemotionhistory', authenticateToken, async (req, res) => {
+
+})
+
+//TODO VetoMotion, Vote (anonymous?), Second, SecondMotion, 
