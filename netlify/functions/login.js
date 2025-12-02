@@ -2,15 +2,21 @@ import { MongoClient } from 'mongodb';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 
-let dbConnection;
-
 async function getDb() {
-  if (!dbConnection) {
-    const client = new MongoClient(process.env.MONGODB_URI);
+  try {
+    console.log('Attempting to connect to MongoDB...');
+    if (!process.env.MONGODB_URI) {
+      throw new Error('MONGODB_URI environment variable is not set');
+    }
+    const client = new MongoClient(process.env.MONGODB_URI, { serverSelectionTimeoutMS: 5000 });
     await client.connect();
-    dbConnection = client.db('WebProgFinal');
+    const db = client.db('WebProgFinal');
+    console.log('Successfully connected to MongoDB');
+    return db;
+  } catch (error) {
+    console.error('MongoDB connection failed:', error.message);
+    throw error;
   }
-  return dbConnection;
 }
 
 export default async (req, res) => {
