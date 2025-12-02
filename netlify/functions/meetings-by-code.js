@@ -1,5 +1,4 @@
 import { MongoClient } from 'mongodb';
-import bcrypt from 'bcryptjs';
 
 let cachedDb = null;
 
@@ -20,23 +19,19 @@ async function getDb() {
   return cachedDb;
 }
 
-// Netlify Functions v1 format - exports a handler function
 export async function handler(event, context) {
-  // Set headers for all responses
   const headers = {
     'Access-Control-Allow-Origin': '*',
     'Access-Control-Allow-Headers': 'Content-Type, Authorization',
-    'Access-Control-Allow-Methods': 'POST, OPTIONS',
+    'Access-Control-Allow-Methods': 'GET, OPTIONS',
     'Content-Type': 'application/json'
   };
 
-  // Handle preflight CORS request
   if (event.httpMethod === 'OPTIONS') {
     return { statusCode: 200, headers, body: '' };
   }
 
-  // Only allow POST
-  if (event.httpMethod !== 'POST') {
+  if (event.httpMethod !== 'GET') {
     return {
       statusCode: 405,
       headers,
@@ -45,54 +40,37 @@ export async function handler(event, context) {
   }
 
   try {
-    // Parse the request body
-    const { name, email, password } = JSON.parse(event.body || '{}');
+    // Extract code from path: /api/meetings/code/:code
+    const pathParts = event.path.split('/');
+    const code = pathParts[pathParts.length - 1];
 
-    if (!name || !email || !password) {
+    if (!code) {
       return {
         statusCode: 400,
         headers,
-        body: JSON.stringify({ success: false, message: 'Name, email and password are required' })
+        body: JSON.stringify({ success: false, message: 'Meeting code required' })
       };
     }
 
     const db = await getDb();
-    
-    // Check if user already exists
-    const existing = await db.collection('users').findOne({ email });
-    if (existing) {
+    const meeting = await db.collection('meetings').findOne({ code: code, active: true });
+
+    if (!meeting) {
       return {
-        statusCode: 409,
+        statusCode: 404,
         headers,
-        body: JSON.stringify({ success: false, message: 'Account already exists' })
+        body: JSON.stringify({ success: false, message: 'Meeting not found' })
       };
     }
-
-    // Hash password and create user
-    const hashed = await bcrypt.hash(password, 10);
-    const userDoc = {
-      name,
-      email,
-      password_hash: hashed,
-      committee_memberships: [],
-      phone_number: '',
-      short_bio: '',
-      address: ''
-    };
-
-    const result = await db.collection('users').insertOne(userDoc);
 
     return {
       statusCode: 200,
       headers,
-      body: JSON.stringify({ 
-        success: true, 
-        user: { id: result.insertedId, name, email } 
-      })
+      body: JSON.stringify({ success: true, meeting })
     };
 
   } catch (err) {
-    console.error('[REGISTER] Error:', err);
+    console.error('[MEETINGS-BY-CODE] Error:', err);
     return {
       statusCode: 500,
       headers,
@@ -100,3 +78,4 @@ export async function handler(event, context) {
     };
   }
 }
+

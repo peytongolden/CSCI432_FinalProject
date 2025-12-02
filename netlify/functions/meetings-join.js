@@ -1,5 +1,4 @@
-import { MongoClient } from 'mongodb';
-import bcrypt from 'bcryptjs';
+import { MongoClient, ObjectId } from 'mongodb';
 
 let cachedDb = null;
 
@@ -20,9 +19,7 @@ async function getDb() {
   return cachedDb;
 }
 
-// Netlify Functions v1 format - exports a handler function
 export async function handler(event, context) {
-  // Set headers for all responses
   const headers = {
     'Access-Control-Allow-Origin': '*',
     'Access-Control-Allow-Headers': 'Content-Type, Authorization',
@@ -30,12 +27,10 @@ export async function handler(event, context) {
     'Content-Type': 'application/json'
   };
 
-  // Handle preflight CORS request
   if (event.httpMethod === 'OPTIONS') {
     return { statusCode: 200, headers, body: '' };
   }
 
-  // Only allow POST
   if (event.httpMethod !== 'POST') {
     return {
       statusCode: 405,
@@ -45,54 +40,59 @@ export async function handler(event, context) {
   }
 
   try {
-    // Parse the request body
-    const { name, email, password } = JSON.parse(event.body || '{}');
+    // Extract meeting ID from path: /api/meetings/:id/join
+    const pathParts = event.path.split('/');
+    // Path looks like: /api/meetings/MEETING_ID/join
+    const joinIndex = pathParts.indexOf('join');
+    const meetingId = joinIndex > 0 ? pathParts[joinIndex - 1] : null;
 
-    if (!name || !email || !password) {
+    if (!meetingId || !ObjectId.isValid(meetingId)) {
       return {
         statusCode: 400,
         headers,
-        body: JSON.stringify({ success: false, message: 'Name, email and password are required' })
+        body: JSON.stringify({ success: false, message: 'Invalid meeting ID' })
       };
     }
 
-    const db = await getDb();
-    
-    // Check if user already exists
-    const existing = await db.collection('users').findOne({ email });
-    if (existing) {
+    const { displayName } = JSON.parse(event.body || '{}');
+
+    if (!displayName) {
       return {
-        statusCode: 409,
+        statusCode: 400,
         headers,
-        body: JSON.stringify({ success: false, message: 'Account already exists' })
+        body: JSON.stringify({ success: false, message: 'displayName required' })
       };
     }
 
-    // Hash password and create user
-    const hashed = await bcrypt.hash(password, 10);
-    const userDoc = {
-      name,
-      email,
-      password_hash: hashed,
-      committee_memberships: [],
-      phone_number: '',
-      short_bio: '',
-      address: ''
+    const participant = {
+      _id: new ObjectId(),
+      name: displayName,
+      joinedAt: new Date(),
+      uid: null
     };
 
-    const result = await db.collection('users').insertOne(userDoc);
+    const db = await getDb();
+    const result = await db.collection('meetings').updateOne(
+      { _id: new ObjectId(meetingId) },
+      { $push: { participants: participant } }
+    );
+
+    if (result.modifiedCount === 0) {
+      return {
+        statusCode: 500,
+        headers,
+        body: JSON.stringify({ success: false, message: 'Could not add participant' })
+      };
+    }
 
     return {
       statusCode: 200,
       headers,
-      body: JSON.stringify({ 
-        success: true, 
-        user: { id: result.insertedId, name, email } 
-      })
+      body: JSON.stringify({ success: true, participantId: participant._id, meetingId })
     };
 
   } catch (err) {
-    console.error('[REGISTER] Error:', err);
+    console.error('[MEETINGS-JOIN] Error:', err);
     return {
       statusCode: 500,
       headers,
@@ -100,3 +100,4 @@ export async function handler(event, context) {
     };
   }
 }
+

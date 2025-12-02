@@ -377,28 +377,8 @@ app.post('/api/committee/updateRole/', authenticateToken, async (req, res) => {
     }
 })
 
-<<<<<<< Updated upstream
-
-// patch method for updating motions and setting the meeting flag.
+// Patch method for updating motions and setting the meeting
 // id is ObjectId of committee
-// Do not use to edit MotionHistory or Members array.
-
-
-app.patch('/api/committee/updatecommitteeinfo/:id', authenticateToken, (req, res) => {
-    const updates = req.body
-
-    if (ObjectId.isValid(req.params.id)) {
-        db.collection('committees')
-            .updateOne( {_id: new ObjectId(req.params.id)}, { $set: updates} )
-            .then(result => {
-                res.status(200).json(result)
-            })
-            .catch(err => res.status(500).json({error: "Server Error"}));
-    } else {
-        res.status(500).json({error: "Invalid Committee ID"})
-=======
-//patch method for updating motions and setting the meeting
-//id is ObjectId of committee
 // Accept committee updates by either route param or a CommitteeID in the body
 function handleUpdateCommitteeInfo(req, res) {
     const updates = req.body || {}
@@ -418,8 +398,8 @@ function handleUpdateCommitteeInfo(req, res) {
         })
 }
 
-app.patch('/api/committee/updateCommitteeInfo/:id', handleUpdateCommitteeInfo)
-app.patch('/api/committee/updateCommitteeInfo', handleUpdateCommitteeInfo)
+app.patch('/api/committee/updateCommitteeInfo/:id', authenticateToken, handleUpdateCommitteeInfo)
+app.patch('/api/committee/updateCommitteeInfo', authenticateToken, handleUpdateCommitteeInfo)
 
 // ----------------------------
 // Meeting endpoints
@@ -523,7 +503,6 @@ app.post('/api/meetings/:id/join', async (req, res) => {
     } catch (err) {
         console.error(err)
         return res.status(500).json({ success: false, message: 'Server error' })
->>>>>>> Stashed changes
     }
 })
 

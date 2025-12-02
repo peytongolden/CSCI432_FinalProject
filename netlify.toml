@@ -3,9 +3,61 @@ command = "npm run build"
 functions = "netlify/functions"
 publish = "dist"
 
-[context.development]
-command = "npm run build"
+[functions]
+node_bundler = "esbuild"
 
+# API redirects - route /api/* to Netlify functions
+[[redirects]]
+from = "/api/login"
+to = "/.netlify/functions/login"
+status = 200
+
+[[redirects]]
+from = "/api/register"
+to = "/.netlify/functions/register"
+status = 200
+
+[[redirects]]
+from = "/api/user/me"
+to = "/.netlify/functions/user-me"
+status = 200
+
+[[redirects]]
+from = "/api/user/update/:id"
+to = "/.netlify/functions/user-update"
+status = 200
+
+[[redirects]]
+from = "/api/committee/new"
+to = "/.netlify/functions/committee-new"
+status = 200
+
+[[redirects]]
+from = "/api/committee/:id"
+to = "/.netlify/functions/committee-get"
+status = 200
+
+[[redirects]]
+from = "/api/meetings"
+to = "/.netlify/functions/meetings"
+status = 200
+
+[[redirects]]
+from = "/api/meetings/code/:code"
+to = "/.netlify/functions/meetings-by-code"
+status = 200
+
+[[redirects]]
+from = "/api/meetings/:id"
+to = "/.netlify/functions/meetings-get"
+status = 200
+
+[[redirects]]
+from = "/api/meetings/:id/join"
+to = "/.netlify/functions/meetings-join"
+status = 200
+
+# SPA fallback - must be last
 [[redirects]]
 from = "/*"
 to = "/index.html"
