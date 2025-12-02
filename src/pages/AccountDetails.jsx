@@ -30,6 +30,8 @@ function AccountDetails() {
   const [editing, setEditing] = useState(false)
   const [form, setForm] = useState(userInfo)
   const [errors, setErrors] = useState({})
+  const [committees, setCommittees] = useState([])
+  const [loadingCommittees, setLoadingCommittees] = useState(false)
 
   // On mount, try to fetch fresh profile from backend if token available
   useEffect(() => {
@@ -45,6 +47,23 @@ function AccountDetails() {
           setUserInfo(data.user)
           setForm(data.user)
           try { localStorage.setItem('userInfo', JSON.stringify(data.user)) } catch (e) { console.error(e) }
+          
+          // Load user's committees
+          if (Array.isArray(data.user.committee_memberships) && data.user.committee_memberships.length) {
+            setLoadingCommittees(true)
+            const ids = data.user.committee_memberships.map(String)
+            const fetched = await Promise.all(ids.map(async (id) => {
+              try {
+                const r = await fetch(`/api/committee/${encodeURIComponent(id)}`, { headers: { 'Authorization': `Bearer ${token}` } })
+                if (!r.ok) return null
+                const committee = await r.json().catch(() => null)
+                if (!committee) return null
+                return { id: String(committee._id || committee._id?.toString?.()), name: committee.CommitteeName || committee.name, ...committee }
+              } catch (err) { return null }
+            }))
+            setCommittees(fetched.filter(Boolean))
+            setLoadingCommittees(false)
+          }
         }
       } catch (e) {
         console.error('Failed to fetch profile', e)
@@ -240,6 +259,44 @@ function AccountDetails() {
               </div>
             )}
           </div>
+        </section>
+
+        <section className="committees-section">
+          <h2 className="section-title">Your Committees</h2>
+          {loadingCommittees ? (
+            <div className="committees-loading">Loading committees…</div>
+          ) : committees.length > 0 ? (
+            <div className="committees-list">
+              {committees.map((committee) => (
+                <div key={committee.id} className="committee-card">
+                  <div className="committee-header">
+                    <h3>{committee.name}</h3>
+                    <span className={`committee-status ${committee.ActiveMeeting ? 'active' : 'inactive'}`}>
+                      {committee.ActiveMeeting ? 'Meeting Active' : 'No Meeting'}
+                    </span>
+                  </div>
+                  {committee.PrimaryMotion && (
+                    <div className="committee-motion">
+                      <strong>Current Motion:</strong> {committee.PrimaryMotion}
+                      {committee.PrimaryMotionDescription && <p>{committee.PrimaryMotionDescription}</p>}
+                    </div>
+                  )}
+                  <div className="committee-meta">
+                    <span>{Array.isArray(committee.Members) ? committee.Members.length : 0} member(s)</span>
+                  </div>
+                  <div className="committee-actions">
+                    <button className="btn-small" onClick={() => navigate(`/meeting?committeeId=${committee.id}`)}>
+                      View Committee
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="committees-empty">
+              <p>You are not a member of any committees yet.</p>
+            </div>
+          )}
         </section>
         </div>
       </div>
