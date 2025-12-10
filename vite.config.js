@@ -8,11 +8,11 @@ export default defineConfig({
     open: true,
     proxy: {
       '/api': {
-        target: 'http://localhost:4000',
+        target: /*localhost */,
         changeOrigin: true
       },
       '/.netlify/functions': {
-        target: 'http://localhost:4000',
+        target: /*localhost*/,
         changeOrigin: true,
         rewrite: (path) => path.replace('/.netlify/functions', '/api')
       }
