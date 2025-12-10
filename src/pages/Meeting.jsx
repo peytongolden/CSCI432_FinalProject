@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { apiFetch } from '../lib/api'
 import './Meeting.css'
 import MembersList from '../components/MembersList'
 import CurrentMotion from '../components/CurrentMotion'
@@ -63,7 +64,7 @@ function Meeting() {
 
     ;(async () => {
       try {
-        const res = await fetch(`/api/meetings/${encodeURIComponent(meetingId)}`)
+        const res = await apiFetch(`/api/meetings/${encodeURIComponent(meetingId)}`)
         if (!res.ok) return
         const body = await res.json().catch(() => null)
         if (!body || !body.meeting) return

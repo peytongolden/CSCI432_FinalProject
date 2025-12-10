@@ -4,6 +4,7 @@ import './Login.css'
 import './AccountDetails.css'
 import './FormStyles.css'
 import Navigation from '../components/Navigation'
+import { apiFetch } from '../lib/api'
 
 function AccountDetails() {
   const navigate = useNavigate()
@@ -40,7 +41,7 @@ function AccountDetails() {
     if (!token) return
     (async () => {
       try {
-        const res = await fetch('/api/user/me', {
+        const res = await apiFetch('/api/user/me', {
           headers: { 'Authorization': `Bearer ${token}` }
         })
         const data = await res.json()
@@ -55,7 +56,7 @@ function AccountDetails() {
             const ids = data.user.committee_memberships.map(String)
             const fetched = await Promise.all(ids.map(async (id) => {
               try {
-                const r = await fetch(`/api/committee/${encodeURIComponent(id)}`, { headers: { 'Authorization': `Bearer ${token}` } })
+                const r = await apiFetch(`/api/committee/${encodeURIComponent(id)}`, { headers: { 'Authorization': `Bearer ${token}` } })
                 if (!r.ok) return null
                 const committee = await r.json().catch(() => null)
                 if (!committee) return null

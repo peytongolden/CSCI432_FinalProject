@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { apiFetch } from '../lib/api'
 import { useNavigate } from 'react-router-dom';
 import './CreateJoinMeeting.css';
 import './FormStyles.css';
@@ -14,7 +15,7 @@ function CreateMeeting() {
       setLoadingGroups(true)
       try {
         const token = localStorage.getItem('token')
-        const res = await fetch('/api/user/me', { headers: token ? { Authorization: `Bearer ${token}` } : undefined })
+        const res = await apiFetch('/api/user/me', { headers: token ? { Authorization: `Bearer ${token}` } : undefined })
             if (res.ok) {
               const data = await res.json()
               if (mounted && data && data.user) {
@@ -31,7 +32,7 @@ function CreateMeeting() {
                   const ids = data.user.committee_memberships.map(String)
                   const fetched = await Promise.all(ids.map(async (id) => {
                     try {
-                      const r = await fetch(`/api/committee/${encodeURIComponent(id)}`, { headers: token ? { Authorization: `Bearer ${token}` } : undefined })
+                      const r = await apiFetch(`/api/committee/${encodeURIComponent(id)}`, { headers: token ? { Authorization: `Bearer ${token}` } : undefined })
                       if (!r.ok) return null
                       const committee = await r.json().catch(() => null)
                       if (!committee) return null
@@ -96,7 +97,7 @@ function CreateMeeting() {
     try {
       const token = localStorage.getItem('token')
       const datetime = meetingDate && meetingTime ? `${meetingDate}T${meetingTime}` : (meetingDate || null)
-      const res = await fetch('/api/meetings', {
+      const res = await apiFetch('/api/meetings', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
         body: JSON.stringify({ name: meetingName, datetime, description, committeeIds: groupsToOpen })

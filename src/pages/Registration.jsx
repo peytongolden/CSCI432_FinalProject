@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import './Login.css'
+import { apiUrl } from '../lib/api'
 
 function Registration() {
   const [formData, setFormData] = useState({
@@ -62,7 +63,7 @@ function Registration() {
     if (!validateForm()) return
     
     try {
-      const response = await fetch('/.netlify/functions/register', {
+      const response = await fetch(apiUrl('/api/register'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(formData)
