@@ -103,7 +103,7 @@ export async function handler(event, context) {
     return {
       statusCode: 200,
       headers,
-      body: JSON.stringify({ success: true, participantId: String(participant._id), meetingId })
+      body: JSON.stringify({ success: true, participantId: participant._id, meetingId })
     };
 
   } catch (err) {

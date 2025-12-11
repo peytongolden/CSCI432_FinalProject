@@ -113,9 +113,10 @@ function CreateMeeting() {
       const data = await res.json()
       const meetingId = data.meetingId ? data.meetingId : data.meeting?._id
       const meetingCode = data.code
+      const creatorParticipantId = data.creatorParticipantId
 
-      // navigate into meeting page with the new meeting id
-      if (meetingId) navigate(`/meeting?meetingId=${meetingId}${meetingCode ? `&code=${meetingCode}` : ''}${data.participantId ? `&participantId=${data.participantId}` : ''}`)
+      // navigate into meeting page with the new meeting id and creator's participantId
+      if (meetingId) navigate(`/meeting?meetingId=${meetingId}${meetingCode ? `&code=${meetingCode}` : ''}${creatorParticipantId ? `&participantId=${creatorParticipantId}` : ''}`)
       else navigate('/meeting')
     } catch (err) {
       console.error('Create meeting failed', err)
