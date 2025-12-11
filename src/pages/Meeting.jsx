@@ -1,4 +1,6 @@
 import { useState, useEffect } from 'react'
+import { useNavigate } from 'react-router-dom'
+import ConfirmLeaveModal from '../components/ConfirmLeaveModal'
 import { apiFetch } from '../lib/api'
 import './Meeting.css'
 import MembersList from '../components/MembersList'
@@ -24,6 +26,14 @@ function Meeting() {
   // Track whether a real meeting has been loaded
   const [meetingLoaded, setMeetingLoaded] = useState(false)
 
+  const [meetingCode, setMeetingCode] = useState(null)
+    const [meetingIdState, setMeetingIdState] = useState(null)
+  const [copied, setCopied] = useState(false)
+  const [shared, setShared] = useState(false)
+  // Local user info from localStorage (if authenticated)
+  let userInfo = null
+  try { userInfo = JSON.parse(localStorage.getItem('userInfo') || 'null') } catch (e) { userInfo = null }
+
   // if meetingId and participantId are in the query we will try to retrieve a real meeting
   useEffect(() => {
     const params = new URLSearchParams(window.location.search)
@@ -40,14 +50,21 @@ function Meeting() {
         if (!body || !body.meeting) return
 
       const meet = body.meeting
+          if (meetingId) setMeetingIdState(meetingId)
         // update committee name and data
         if (meet.name) {
           setCommittee({ id: meet._id || meetingId, name: meet.name, sessionActive: !!meet.active })
         }
+        if (meet.code) setMeetingCode(meet.code)
 
         // set members from participants
         if (Array.isArray(meet.participants) && meet.participants.length) {
-          const mapped = meet.participants.map((p, idx) => ({ id: idx + 1, name: p.name || 'Guest', role: 'member', vote: null }))
+          const mapped = meet.participants.map((p, idx) => {
+            const pid = p._id || p._id?.$oid || p.uid || (idx + 1)
+            const pidStr = String(pid)
+            const role = p.role || (String(p._id) === String(meet.presidingParticipantId) || String(p.uid) === String(meet.createdBy) ? 'chair' : 'member')
+            return ({ id: pidStr, name: p.name || 'Guest', role, vote: null, uid: p.uid || null, _id: p._id })
+          })
           setMembers(mapped)
         }
 
@@ -60,13 +77,16 @@ function Meeting() {
         // if we have a participantId, try to make them the current user
         if (participantId && Array.isArray(meet.participants)) {
           const found = meet.participants.find(p => String(p._id) === String(participantId) || String(p._id?.$oid) === String(participantId))
-          if (found) setCurrentUser({ id: found._id || participantId, name: found.name || 'Guest', role: 'member', hasVoted: false, vote: null })
-          else setCurrentUser({ id: participantId, name: 'Guest', role: 'member', hasVoted: false, vote: null })
+          if (found) setCurrentUser({ id: String(found._id || participantId), name: found.name || 'Guest', role: found.role || 'member', hasVoted: false, vote: null })
+          else setCurrentUser({ id: String(participantId), name: 'Guest', role: 'member', hasVoted: false, vote: null })
+        } else if (userInfo && String(userInfo.id) === String(meet.createdBy)) {
+          // if we're the creator (authenticated), make us the current user with chair role
+          setCurrentUser(prev => ({ ...(prev || {}), id: String(userInfo.id), name: userInfo.name || 'Guest', role: 'chair' }))
         }
 
         // indicate we've loaded an actual meeting
         setMeetingLoaded(true)
-        try { 
+        try {
           sessionStorage.setItem('inMeeting', 'true')
           if (meetingId) sessionStorage.setItem('meetingId', meetingId)
           if (participantId) sessionStorage.setItem('participantId', participantId)
@@ -80,6 +100,7 @@ function Meeting() {
 
   const [showControlsModal, setShowControlsModal] = useState(false)
   const [showNewMotionModal, setShowNewMotionModal] = useState(false)
+  const [showLeaveConfirm, setShowLeaveConfirm] = useState(false)
   const [voteConfirmation, setVoteConfirmation] = useState(null)
   const [nextMotionId, setNextMotionId] = useState(2)
 
@@ -104,6 +125,40 @@ function Meeting() {
       try { sessionStorage.removeItem('inMeeting'); sessionStorage.removeItem('meetingId'); sessionStorage.removeItem('participantId') } catch (e) {}
     }
   }, [])
+
+  // Poll the server for meeting updates (participants/motions) while loaded
+  useEffect(() => {
+    if (!meetingLoaded || !meetingIdState) return
+    let mounted = true
+    const timer = setInterval(async () => {
+      try {
+        const res = await apiFetch(`/api/meetings/${encodeURIComponent(meetingIdState)}`)
+        if (!res.ok) return
+        const body = await res.json().catch(() => null)
+        if (!body || !body.meeting) return
+        const meet = body.meeting
+        if (!mounted) return
+
+        // update committee name/code and participants/motions
+        if (meet.name) setCommittee(prev => ({ ...(prev || {}), name: meet.name, sessionActive: !!meet.active }))
+        if (meet.code) setMeetingCode(meet.code)
+        if (Array.isArray(meet.motions) && meet.motions.length) setMotions(meet.motions.map((m, idx) => ({ id: m.id || idx + 1, title: m.title || 'Untitled', description: m.description || '', status: m.status || 'voting', createdBy: m.createdBy || null, votes: m.votes || { yes: 0, no: 0, abstain: 0 } })))
+        if (Array.isArray(meet.participants) && meet.participants.length) {
+          const mapped = meet.participants.map((p, idx) => {
+            const pid = p._id || p._id?.$oid || p.uid || (idx + 1)
+            const pidStr = String(pid)
+            const role = p.role || (String(p._id) === String(meet.presidingParticipantId) || String(p.uid) === String(meet.createdBy) ? 'chair' : 'member')
+            return ({ id: pidStr, name: p.name || 'Guest', role, vote: null, uid: p.uid || null, _id: p._id })
+          })
+          setMembers(mapped)
+        }
+      } catch (err) {
+        // ignore polling errors
+      }
+    }, 5000)
+
+    return () => { mounted = false; clearInterval(timer) }
+  }, [meetingLoaded, meetingIdState])
 
   // Cast a vote
   const castVote = (vote) => {
@@ -240,6 +295,65 @@ function Meeting() {
     setCurrentMotionId(motion.id)
   }
 
+  // Assign selected member as the presiding officer (chair) and persist if possible
+  const assignChair = async (memberId) => {
+    setMembers(prev => prev.map(m => ({ ...m, role: String(m.id) === String(memberId) ? 'chair' : 'member' })))
+    setCurrentUser(prev => ({ ...(prev || {}), role: String(prev?.id) === String(memberId) ? 'chair' : prev?.role }))
+
+    // persist to backend if we have a meeting id
+    if (!meetingIdState) return
+    try {
+      const token = localStorage.getItem('token')
+      const res = await apiFetch(`/api/meetings/${encodeURIComponent(meetingIdState)}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+        body: JSON.stringify({ presidingParticipantId: memberId })
+      })
+      if (!res.ok) console.warn('Failed to persist presiding officer change')
+    } catch (err) {
+      console.warn('Failed to update presiding officer', err)
+    }
+  }
+
+  // Leave meeting flow
+  const navigate = useNavigate()
+  const leaveMeeting = async (destination = '/lobby') => {
+    try {
+      const meetingId = meetingIdState
+      const participantId = sessionStorage.getItem('participantId')
+      const token = localStorage.getItem('token')
+      if (meetingId && participantId) {
+        await apiFetch(`/api/meetings/${encodeURIComponent(meetingId)}/leave`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+          body: JSON.stringify({ participantId })
+        })
+      } else if (meetingId && token) {
+        try {
+          const parsed = JSON.parse(atob(token.split('.')[1]))
+          const uid = parsed?.id || parsed?.userId || null
+          if (uid) {
+            await apiFetch(`/api/meetings/${encodeURIComponent(meetingId)}/leave`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+              body: JSON.stringify({ uid })
+            })
+          }
+        } catch (err) {
+          // ignore parse
+        }
+      }
+    } catch (err) {
+      // ignore errors (best-effort leave)
+      console.warn('Failed to call leave endpont', err)
+    }
+    try { sessionStorage.removeItem('inMeeting'); sessionStorage.removeItem('meetingId'); sessionStorage.removeItem('participantId'); sessionStorage.removeItem('committeeName') } catch (e) {}
+    if (destination === '/login') {
+      try { localStorage.removeItem('token'); localStorage.removeItem('userInfo') } catch (e) {}
+    }
+    navigate(destination)
+  }
+
   const completedMotions = motions.filter(m => m.status === 'completed' && m.id !== currentMotionId)
 
   const presidingOfficer = members.find(m => m.role === 'chair')
@@ -273,12 +387,68 @@ function Meeting() {
       <div className="meeting-dashboard">
         <div className="dashboard-header">
           <h1>{committee?.name || 'Meeting'}</h1>
-          <button 
-            className="chair-controls-btn"
-            onClick={() => setShowControlsModal(true)}
-          >
-            Chair Controls
-          </button>
+          {meetingCode && (
+            <span className="meeting-code">Code: {meetingCode}
+              <button
+                type="button"
+                title="Copy meeting code"
+                aria-label="Copy meeting code"
+                className="copy-code-btn"
+                onClick={async () => {
+                  try {
+                    await navigator.clipboard.writeText(meetingCode)
+                    setCopied(true)
+                    setTimeout(() => setCopied(false), 2000)
+                  } catch (err) {
+                    // fallback
+                    const el = document.createElement('textarea')
+                    el.value = meetingCode
+                    document.body.appendChild(el)
+                    el.select()
+                    document.execCommand('copy')
+                    document.body.removeChild(el)
+                    setCopied(true)
+                    setTimeout(() => setCopied(false), 2000)
+                  }
+                }}
+              >Copy</button>
+              <button
+                type="button"
+                title="Share meeting code"
+                aria-label="Share meeting code"
+                className="share-code-btn"
+                onClick={async () => {
+                  try {
+                    const shareUrl = `${window.location.origin}/join?meetingCode=${encodeURIComponent(meetingCode)}`
+                    if (navigator.share) {
+                      await navigator.share({ title: 'Join my meeting', text: `Use this meeting code to join: ${meetingCode}`, url: shareUrl })
+                      setShared(true)
+                      setTimeout(() => setShared(false), 2000)
+                    } else {
+                      await navigator.clipboard.writeText(shareUrl)
+                      setShared(true)
+                      setTimeout(() => setShared(false), 2000)
+                    }
+                  } catch (err) {
+                    console.warn('Share failed', err)
+                    const shareUrl = `${window.location.origin}/join?meetingCode=${encodeURIComponent(meetingCode)}`
+                    try { await navigator.clipboard.writeText(shareUrl); setShared(true); setTimeout(() => setShared(false), 2000) } catch (e) { /* ignore */ }
+                  }
+                }}
+              >Share</button>
+              {copied && <span className="meeting-code-copied">Copied!</span>}
+              {shared && <span className="meeting-code-shared">Link copied!</span>}
+            </span>
+          )}
+          {safeCurrentUser.role === 'chair' && (
+            <button 
+              className="chair-controls-btn"
+              onClick={() => setShowControlsModal(true)}
+            >
+              Chair Controls
+            </button>
+          )}
+          <button className="leave-meeting-btn" onClick={() => setShowLeaveConfirm(true)}>Leave Meeting</button>
         </div>
 
         <div className="dashboard-grid">
@@ -358,6 +528,9 @@ function Meeting() {
           onEndVoting={endVoting}
           onStartNewMotion={startNewMotion}
           onViewResults={viewResults}
+          members={members}
+          presidingOfficerId={presidingOfficer?.id}
+          onAssignChair={assignChair}
         />
       )}
 
@@ -370,6 +543,18 @@ function Meeting() {
       )}
 
       {voteConfirmation && <VoteConfirmation vote={voteConfirmation} />}
+      {showLeaveConfirm && (
+        <ConfirmLeaveModal
+          isOpen={showLeaveConfirm}
+          onConfirm={() => leaveMeeting('/lobby')}
+          onCancel={() => setShowLeaveConfirm(false)}
+          destination="/lobby"
+          committeeName={committee?.name}
+          title="Leave meeting"
+          message={`You're about to leave the meeting${committee?.name ? ` "${committee.name}"` : ''}. This will remove you from the meeting. Continue?`}
+          confirmLabel="Leave"
+        />
+      )}
     </>
   )
 }

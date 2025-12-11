@@ -68,10 +68,25 @@ export async function handler(event, context) {
       _id: new ObjectId(),
       name: displayName,
       joinedAt: new Date(),
-      uid: null
+      uid: null,
+      role: 'member'
     };
 
     const db = await getDb();
+    // If a token is present, set the uid for the participant
+    const authHeader = event.headers['authorization'] || event.headers['Authorization']
+    if (authHeader) {
+      try {
+        const parts = authHeader.split(' ')
+        const token = parts.length === 2 ? parts[1] : parts[0]
+        // Attempt to decode JWT locally to extract userId (bearer token verification is not enforced here)
+        // Note: We do not verify signature here — a proper solution would verify JWT using the server's secret.
+        const payload = JSON.parse(Buffer.from(token.split('.')[1] || '', 'base64').toString('utf8'))
+        if (payload && payload.id) participant.uid = payload.id
+      } catch (e) {
+        // ignore parsing errors
+      }
+    }
     const result = await db.collection('meetings').updateOne(
       { _id: new ObjectId(meetingId) },
       { $push: { participants: participant } }

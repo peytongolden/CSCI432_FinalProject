@@ -87,6 +87,26 @@ export async function handler(event, context) {
         createdAt: new Date()
       };
 
+      // If we have an authenticated user who created this meeting, add them as a participant and make them the presiding officer
+      if (userId) {
+        try {
+          const userDoc = await db.collection('users').findOne({ _id: new ObjectId(userId) })
+          if (userDoc) {
+            const participant = {
+              _id: new ObjectId(),
+              name: userDoc.name || 'Guest',
+              joinedAt: new Date(),
+              uid: userId,
+              role: 'chair'
+            }
+            meeting.participants.push(participant)
+            meeting.presidingParticipantId = participant._id
+          }
+        } catch (e) {
+          // ignore failures to fetch user doc — fallback to leaving participants empty
+        }
+      }
+
       const result = await db.collection('meetings').insertOne(meeting);
 
       // Update referenced committees
@@ -108,6 +128,36 @@ export async function handler(event, context) {
         headers,
         body: JSON.stringify({ success: true, meetingId: result.insertedId, code: meeting.code })
       };
+    }
+
+    // PATCH - Update meeting metadata (e.g., presiding chair)
+    if (event.httpMethod === 'PATCH') {
+      try {
+        // path: /api/meetings/:id
+        const pathParts = event.path.split('/')
+        const meetingId = pathParts[pathParts.length - 1]
+        if (!meetingId || !ObjectId.isValid(meetingId)) return { statusCode: 400, headers, body: JSON.stringify({ success: false, message: 'Invalid meeting ID' }) }
+
+        const body = JSON.parse(event.body || '{}')
+        const { presidingParticipantId } = body
+
+        if (!presidingParticipantId) return { statusCode: 400, headers, body: JSON.stringify({ success: false, message: 'presidingParticipantId required' }) }
+
+        // set role: 'chair' for the selected participant and 'member' for others
+        const update = await db.collection('meetings').findOne({ _id: new ObjectId(meetingId) })
+        if (!update) return { statusCode: 404, headers, body: JSON.stringify({ success: false, message: 'Meeting not found' }) }
+
+        const updatedParticipants = (update.participants || []).map(p => {
+          if (String(p._id) === String(presidingParticipantId)) return { ...p, role: 'chair' }
+          return { ...p, role: 'member' }
+        })
+
+        await db.collection('meetings').updateOne({ _id: new ObjectId(meetingId) }, { $set: { participants: updatedParticipants, presidingParticipantId: presidingParticipantId } })
+        return { statusCode: 200, headers, body: JSON.stringify({ success: true }) }
+      } catch (err) {
+        console.error('PATCH MEETING failed', err)
+        return { statusCode: 500, headers, body: JSON.stringify({ success: false, message: 'Server error' }) }
+      }
     }
 
     // GET - List meetings (optional, for future use)
