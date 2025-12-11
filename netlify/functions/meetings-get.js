@@ -63,6 +63,17 @@ export async function handler(event, context) {
       };
     }
 
+    // Normalize participants to ensure _id and uid are strings and include safe name/role
+    if (Array.isArray(meeting.participants)) {
+      meeting.participants = meeting.participants.map(p => ({
+        _id: p._id ? (p._id.toString ? p._id.toString() : String(p._id)) : null,
+        uid: p.uid ? String(p.uid) : null,
+        name: p.name || 'Guest',
+        role: p.role || 'member',
+        joinedAt: p.joinedAt || null
+      }))
+    }
+
     // Compute vote tallies for each motion
     if (Array.isArray(meeting.motions)) {
       meeting.motions = meeting.motions.map(m => {

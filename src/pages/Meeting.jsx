@@ -261,6 +261,40 @@ function Meeting() {
           headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
           body: JSON.stringify(bodyObj)
         })
+        // Refresh meeting data to pick up tallies/votesByParticipant to show to other clients
+        try {
+          const r2 = await apiFetch(`/api/meetings/${encodeURIComponent(meetingIdState)}`)
+          if (r2.ok) {
+            const body2 = await r2.json().catch(() => null)
+            if (body2 && body2.meeting) {
+              const meet = body2.meeting
+              // Update motions and members similar to polling handler
+              if (Array.isArray(meet.motions) && meet.motions.length) {
+                const mappedMotions = meet.motions.map((m, idx) => ({ id: m.id || idx + 1, title: m.title || 'Untitled', description: m.description || '', status: m.status || 'proposed', createdBy: m.createdBy || null, votes: m.votes || { yes: 0, no: 0, abstain: 0 }, votesByParticipant: m.votesByParticipant || {} }))
+                setMotions(mappedMotions)
+                const voting = mappedMotions.find(m => m.status === 'voting')
+                if (voting) setCurrentMotionId(voting.id)
+              }
+              if (Array.isArray(meet.participants) && meet.participants.length) {
+                const mapped = meet.participants.map((p, idx) => {
+                  const pid = p._id || p._id?.$oid || p.uid || (idx + 1)
+                  const pidStr = String(pid)
+                  const role = p.role || (String(p._id) === String(meet.presidingParticipantId) || String(p.uid) === String(meet.createdBy) ? 'chair' : 'member')
+                  return ({ id: pidStr, name: p.name || 'Guest', role, vote: null, uid: p.uid || null, _id: p._id })
+                })
+                const votingMotion = (meet.motions || []).find(m => m.status === 'voting')
+                if (votingMotion && votingMotion.votesByParticipant) {
+                  const voteMap = votingMotion.votesByParticipant
+                  for (const mem of mapped) {
+                    const voteFor = voteMap[mem.id] || voteMap[mem.uid]
+                    if (voteFor) mem.vote = voteFor
+                  }
+                }
+                setMembers(mapped)
+              }
+            }
+          }
+        } catch (err) {}
       } catch (err) {
         // swallow errors — UI updated optimistically
         console.warn('Failed to persist vote', err)
@@ -297,6 +331,11 @@ function Meeting() {
 
   // Create new motion
   const createNewMotion = (motionData) => {
+    // Guard: do not propose if a motion is voting according to current local state
+    if (Array.isArray(motions) && motions.some(m => m.status === 'voting')) {
+      alert('Cannot propose a new motion while voting is in progress')
+      return false
+    }
     // If we don't have a meetingId, fallback to local behavior for now
     if (!meetingIdState) {
       const newMotion = {
@@ -315,10 +354,10 @@ function Meeting() {
       setCurrentMotionId(nextMotionId)
       setNextMotionId(prev => prev + 1)
       console.log('New motion created (local):', newMotion)
-      return
+      return true
     }
 
-    (async () => {
+    return (async () => {
       try {
         const token = localStorage.getItem('token')
         const res = await apiFetch(`/api/meetings/${encodeURIComponent(meetingIdState)}`, {
@@ -333,15 +372,17 @@ function Meeting() {
           return
         }
         const body = await res.json().catch(() => null)
-        if (!body || !body.motion) return
+        if (!body || !body.motion) return false
         const m = body.motion
         const newMotion = { id: m.id, title: m.title, description: m.description, status: m.status || 'proposed', createdBy: m.createdBy || safeCurrentUser.id, votes: { yes: 0, no: 0, abstain: 0 } }
         setMotions(prev => [...prev, newMotion])
         setCurrentMotionId(newMotion.id)
         console.log('New motion created (server):', newMotion)
+        return true
       } catch (err) {
         console.warn('Failed to create motion', err)
         alert('Failed to create motion')
+        return false
       }
     })()
   }
@@ -459,7 +500,23 @@ function Meeting() {
         headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
         body: JSON.stringify({ presidingParticipantId: memberId })
       })
-      if (!res.ok) console.warn('Failed to persist presiding officer change')
+      if (!res.ok) {
+        console.warn('Failed to persist presiding officer change')
+        const errBody = await res.json().catch(() => null)
+        console.warn('server error:', errBody)
+        alert('Failed to assign presiding officer: ' + (errBody?.message || res.statusText))
+      } else {
+        alert('Presiding officer assigned')
+        const body = await res.json().catch(() => null)
+        if (body && Array.isArray(body.participants)) {
+          const mapped = body.participants.map((p, idx) => ({ id: p.id || String(p.uid || idx + 1), name: p.name || 'Guest', role: p.role || 'member', uid: p.uid || null }))
+          setMembers(mapped)
+          const pres = mapped.find(m => String(m.id) === String(body.presidingParticipantId) || String(m.uid) === String(body.presidingParticipantId))
+          if (pres) {
+            setCurrentUser(prev => ({ ...(prev || {}), role: pres.role }))
+          }
+        }
+      }
     } catch (err) {
       console.warn('Failed to update presiding officer', err)
     }

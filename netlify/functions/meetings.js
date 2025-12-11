@@ -143,17 +143,18 @@ export async function handler(event, context) {
         const meeting = await db.collection('meetings').findOne({ _id: new ObjectId(meetingId) })
         if (!meeting) return { statusCode: 404, headers, body: JSON.stringify({ success: false, message: 'Meeting not found' }) }
 
-        // Helper to look up participant by either participantId or token uid
-        const findParticipantByUid = (uid) => (meeting.participants || []).find(p => String(p.uid) === String(uid))
-        const findParticipantById = (pid) => (meeting.participants || []).find(p => String(p._id) === String(pid) || String(p._id?.$oid) === String(pid) || String(p._id) === String(pid))
+        // Helper to look up participant by either participantId or token uid (robust to ObjectId types)
+        const normalize = (x) => (x && x.toString ? x.toString() : String(x))
+        const findParticipantByUid = (uid) => (meeting.participants || []).find(p => normalize(p.uid) === String(uid))
+        const findParticipantById = (pid) => (meeting.participants || []).find(p => normalize(p._id) === String(pid) || normalize(p._id?.$oid) === String(pid) || normalize(p.uid) === String(pid))
 
         // Role check for presiding officer
         const isPresidingForUser = (decodedId) => {
           if (!decodedId) return false
-          const p = findParticipantByUid(decodedId)
+          const p = findParticipantByUid(decodedId) || findParticipantById(decodedId)
           if (!p) return false
           if (p.role === 'chair') return true
-          if (String(meeting.presidingParticipantId) && (String(p._id) === String(meeting.presidingParticipantId) || String(p.uid) === String(meeting.presidingParticipantId))) return true
+          if (meeting.presidingParticipantId && (normalize(p._id) === normalize(meeting.presidingParticipantId) || normalize(p.uid) === normalize(meeting.presidingParticipantId))) return true
           return false
         }
 
@@ -162,8 +163,10 @@ export async function handler(event, context) {
           const { presidingParticipantId } = body
             if (!presidingParticipantId) return { statusCode: 400, headers, body: JSON.stringify({ success: false, message: 'presidingParticipantId required' }) }
             const updatedParticipants = (meeting.participants || []).map(p => ({ ...p, role: (String(p._id) === String(presidingParticipantId) || String(p.uid) === String(presidingParticipantId)) ? 'chair' : 'member' }))
-          await db.collection('meetings').updateOne({ _id: new ObjectId(meetingId) }, { $set: { participants: updatedParticipants, presidingParticipantId } })
-          return { statusCode: 200, headers, body: JSON.stringify({ success: true }) }
+            await db.collection('meetings').updateOne({ _id: new ObjectId(meetingId) }, { $set: { participants: updatedParticipants, presidingParticipantId } })
+            // Return a more helpful response with normalized participants
+            const normalized = updatedParticipants.map(p => ({ id: p._id ? (p._id.toString ? p._id.toString() : String(p._id)) : (p.uid ? String(p.uid) : null), name: p.name || 'Guest', role: p.role || 'member', uid: p.uid ? String(p.uid) : null }))
+            return { statusCode: 200, headers, body: JSON.stringify({ success: true, presidingParticipantId: presidingParticipantId ? String(presidingParticipantId) : null, participants: normalized }) }
         }
 
         // Handle specific actions
