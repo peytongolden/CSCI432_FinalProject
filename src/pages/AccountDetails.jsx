@@ -18,13 +18,12 @@ function AccountDetails() {
     }
 
     return {
-      name: 'Alex Rivera',
-      email: 'alexrivera@example.com',
-      role: 'Committee Member',
-      joinDate: 'January 2024',
-      phone: '555-555-5555',
-      bio: 'Hi, I am Alex Rivera, a dedicated committee member passionate about events,'+
-      'planning and event planning. I also like cats.',
+      name: '',
+      email: '',
+      role: '',
+      joinDate: '',
+      phone: '',
+      bio: '',
       avatar: '' // base64 data URL or remote URL
     }
   })

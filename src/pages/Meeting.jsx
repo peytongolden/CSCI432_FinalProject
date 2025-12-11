@@ -11,48 +11,18 @@ import MotionHistory from '../components/MotionHistory'
 import Navigation from '../components/Navigation'
 
 function Meeting() {
-  const [committee, setCommittee] = useState({
-    id: 1,
-    name: 'Budget Committee',
-    sessionActive: true
-  })
+  // No sample data by default — a meeting will only be shown when
+  // valid query params are provided and the backend returns meeting info.
+  const [committee, setCommittee] = useState(null)
+  const [members, setMembers] = useState([])
+  const [motions, setMotions] = useState([])
+  const [currentMotionId, setCurrentMotionId] = useState(null)
+  const currentMotion = motions.find(m => m.id === currentMotionId) || null
 
-  const [members, setMembers] = useState([
-    { id: 1, name: 'Sarah Johnson', role: 'chair', vote: null },
-    { id: 2, name: 'Mike Chen', role: 'floor', vote: null },
-    { id: 3, name: 'Alex Rivera', role: 'member', vote: null },
-    { id: 4, name: 'Emma Davis', role: 'member', vote: null },
-    { id: 5, name: 'David Kim', role: 'member', vote: null },
-    { id: 6, name: 'Lisa Park', role: 'member', vote: null },
-    { id: 7, name: 'James Wilson', role: 'member', vote: null },
-    { id: 8, name: 'Rachel Green', role: 'member', vote: null }
-  ])
+  const [currentUser, setCurrentUser] = useState(null)
 
-  const [motions, setMotions] = useState([
-    {
-      id: 1,
-      title: 'Motion to Approve Budget Amendment',
-      description: 'Proposed amendment to increase marketing budget by $5,000 for Q4 initiatives.',
-      status: 'voting',
-      createdBy: 3,
-      votes: {
-        yes: 0,
-        no: 0,
-        abstain: 0
-      }
-    }
-  ])
-
-  const [currentMotionId, setCurrentMotionId] = useState(1)
-  const currentMotion = motions.find(m => m.id === currentMotionId) || motions[0]
-
-  const [currentUser, setCurrentUser] = useState({
-    id: 3,
-    name: 'Alex Rivera',
-    role: 'member',
-    hasVoted: false,
-    vote: null
-  })
+  // Track whether a real meeting has been loaded
+  const [meetingLoaded, setMeetingLoaded] = useState(false)
 
   // if meetingId and participantId are in the query we will try to retrieve a real meeting
   useEffect(() => {
@@ -69,11 +39,10 @@ function Meeting() {
         const body = await res.json().catch(() => null)
         if (!body || !body.meeting) return
 
-        const meet = body.meeting
-
-        // update committee name (use meeting name)
+      const meet = body.meeting
+        // update committee name and data
         if (meet.name) {
-          setCommittee(prev => ({ ...prev, name: meet.name, sessionActive: !!meet.active }))
+          setCommittee({ id: meet._id || meetingId, name: meet.name, sessionActive: !!meet.active })
         }
 
         // set members from participants
@@ -82,11 +51,27 @@ function Meeting() {
           setMembers(mapped)
         }
 
+        // set motions if present
+        if (Array.isArray(meet.motions) && meet.motions.length) {
+          setMotions(meet.motions.map((m, idx) => ({ id: m.id || idx + 1, title: m.title || 'Untitled', description: m.description || '', status: m.status || 'voting', createdBy: m.createdBy || null, votes: m.votes || { yes: 0, no: 0, abstain: 0 } })))
+          setCurrentMotionId(prev => prev || (meet.motions[0]?.id || 1))
+        }
+
         // if we have a participantId, try to make them the current user
         if (participantId && Array.isArray(meet.participants)) {
           const found = meet.participants.find(p => String(p._id) === String(participantId) || String(p._id?.$oid) === String(participantId))
-          if (found) setCurrentUser(prev => ({ ...prev, id: found._id || participantId, name: found.name || prev.name }))
+          if (found) setCurrentUser({ id: found._id || participantId, name: found.name || 'Guest', role: 'member', hasVoted: false, vote: null })
+          else setCurrentUser({ id: participantId, name: 'Guest', role: 'member', hasVoted: false, vote: null })
         }
+
+        // indicate we've loaded an actual meeting
+        setMeetingLoaded(true)
+        try { 
+          sessionStorage.setItem('inMeeting', 'true')
+          if (meetingId) sessionStorage.setItem('meetingId', meetingId)
+          if (participantId) sessionStorage.setItem('participantId', participantId)
+          if (meet.name) sessionStorage.setItem('committeeName', meet.name)
+        } catch (e) {}
       } catch (err) {
         console.warn('Could not load meeting details', err)
       }
@@ -113,9 +98,16 @@ function Meeting() {
     }))
   }, [currentMotionId])
 
+  // Clean up 'inMeeting' and IDs when component unmounts
+  useEffect(() => {
+    return () => {
+      try { sessionStorage.removeItem('inMeeting'); sessionStorage.removeItem('meetingId'); sessionStorage.removeItem('participantId') } catch (e) {}
+    }
+  }, [])
+
   // Cast a vote
   const castVote = (vote) => {
-    if (currentUser.hasVoted) {
+    if (safeCurrentUser.hasVoted) {
       alert('You have already voted. Use "Change Vote" to modify your vote.')
       return
     }
@@ -123,13 +115,13 @@ function Meeting() {
     // Update user's vote in members
     setMembers(prevMembers =>
       prevMembers.map(member =>
-        member.id === currentUser.id ? { ...member, vote } : member
+        member.id === safeCurrentUser.id ? { ...member, vote } : member
       )
     )
 
     // Update current user
     setCurrentUser(prev => ({
-      ...prev,
+      ...(prev || {}),
       vote,
       hasVoted: true
     }))
@@ -142,7 +134,7 @@ function Meeting() {
               ...motion,
               votes: {
                 ...motion.votes,
-                [vote]: motion.votes[vote] + 1
+                [vote]: (motion.votes[vote] || 0) + 1
               }
             }
           : motion
@@ -153,12 +145,12 @@ function Meeting() {
     setVoteConfirmation(vote)
     setTimeout(() => setVoteConfirmation(null), 3000)
 
-    console.log(`Vote cast: ${vote} by ${currentUser.name}`)
+    console.log(`Vote cast: ${vote} by ${safeCurrentUser.name}`)
   }
 
   // Change vote
   const changeVote = () => {
-    const oldVote = currentUser.vote
+    const oldVote = safeCurrentUser.vote
 
     // Decrease old vote count
     setMotions(prevMotions =>
@@ -176,11 +168,11 @@ function Meeting() {
     )
 
     setCurrentUser(prev => ({
-      ...prev,
+      ...(prev || {}),
       hasVoted: false
     }))
 
-    console.log('Vote change enabled for user:', currentUser.name)
+    console.log('Vote change enabled for user:', safeCurrentUser.name)
   }
 
   // Create new motion
@@ -190,7 +182,7 @@ function Meeting() {
       title: motionData.title,
       description: motionData.description,
       status: 'voting',
-      createdBy: currentUser.id,
+      createdBy: safeCurrentUser.id,
       votes: {
         yes: 0,
         no: 0,
@@ -215,7 +207,7 @@ function Meeting() {
       )
     )
     
-    const votes = currentMotion.votes
+    const votes = safeCurrentMotion.votes
     const total = votes.yes + votes.no + votes.abstain
     const majority = total / 2
     
@@ -233,7 +225,7 @@ function Meeting() {
   }
 
   const viewResults = () => {
-    const votes = currentMotion.votes
+    const votes = safeCurrentMotion.votes
     const total = votes.yes + votes.no + votes.abstain
     const majority = total / 2
     
@@ -253,6 +245,26 @@ function Meeting() {
   const presidingOfficer = members.find(m => m.role === 'chair')
   const onFloor = members.find(m => m.role === 'floor')
   const regularMembers = members.filter(m => m.role === 'member')
+  const safeCurrentMotion = currentMotion || { id: null, title: 'No current motion', description: '', status: 'completed', votes: { yes: 0, no: 0, abstain: 0 } }
+  const safeCurrentUser = currentUser || { id: null, name: 'Guest', role: 'member', hasVoted: false, vote: null }
+
+  if (!meetingLoaded) {
+    return (
+      <>
+        <Navigation />
+
+        <main className="meeting-empty">
+          <div className="meeting-empty-card">
+            <h2>No active meeting</h2>
+            <p>You're not currently in a meeting. Use the <strong>Home</strong> page to create or join a meeting.</p>
+            <div style={{ marginTop: '1rem' }}>
+              <a href="/lobby" className="primary">Go to Home</a>
+            </div>
+          </div>
+        </main>
+      </>
+    )
+  }
 
   return (
     <>
@@ -260,7 +272,7 @@ function Meeting() {
 
       <div className="meeting-dashboard">
         <div className="dashboard-header">
-          <h1>{committee.name}</h1>
+          <h1>{committee?.name || 'Meeting'}</h1>
           <button 
             className="chair-controls-btn"
             onClick={() => setShowControlsModal(true)}
@@ -274,17 +286,17 @@ function Meeting() {
           <div className="card motion-card">
             <div className="card-header">
               <h2>Current Motion</h2>
-              <span className={`motion-status ${currentMotion.status}`}>
-                {currentMotion.status === 'voting' ? 'Voting Open' : 'Completed'}
+              <span className={`motion-status ${safeCurrentMotion.status}`}>
+                {safeCurrentMotion.status === 'voting' ? 'Voting Open' : 'Completed'}
               </span>
             </div>
             <div className="motion-content">
-              <h3>{currentMotion.title}</h3>
-              <p>{currentMotion.description}</p>
+              <h3>{safeCurrentMotion.title}</h3>
+              <p>{safeCurrentMotion.description}</p>
             </div>
             <CurrentMotion
-              motion={currentMotion}
-              currentUser={currentUser}
+              motion={safeCurrentMotion}
+              currentUser={safeCurrentUser}
               onCastVote={castVote}
               onChangeVote={changeVote}
             />
@@ -312,15 +324,15 @@ function Meeting() {
             <div className="vote-stats">
               <div className="stat-item yes">
                 <div className="stat-label">Yes</div>
-                <div className="stat-value">{currentMotion.votes.yes}</div>
+                <div className="stat-value">{safeCurrentMotion.votes.yes}</div>
               </div>
               <div className="stat-item no">
                 <div className="stat-label">No</div>
-                <div className="stat-value">{currentMotion.votes.no}</div>
+                <div className="stat-value">{safeCurrentMotion.votes.no}</div>
               </div>
               <div className="stat-item abstain">
                 <div className="stat-label">Abstain</div>
-                <div className="stat-value">{currentMotion.votes.abstain}</div>
+                <div className="stat-value">{safeCurrentMotion.votes.abstain}</div>
               </div>
             </div>
           </div>
@@ -353,7 +365,7 @@ function Meeting() {
         <NewMotionModal
           onClose={() => setShowNewMotionModal(false)}
           onCreateMotion={createNewMotion}
-          currentUser={currentUser}
+          currentUser={safeCurrentUser}
         />
       )}
 

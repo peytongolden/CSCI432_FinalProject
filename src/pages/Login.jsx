@@ -50,12 +50,12 @@ function Login() {
       
       const data = await response.json()
       
-      if (response.status === 200 && data.success) {
+         if (response.status === 200 && data.success) {
         try {
           if (data.token) localStorage.setItem('token', data.token)
           if (data.user) localStorage.setItem('userInfo', JSON.stringify(data.user))
         } catch (e) { console.error('Failed to persist auth info', e) }
-        navigate('/meeting')
+           navigate('/lobby')
       } else {
         setError(data.message || 'Login failed')
       }
@@ -71,7 +71,7 @@ function Login() {
 
   const handleGuestSignIn = () => {
     sessionStorage.setItem('guest', 'true')
-    navigate('/meeting')
+    navigate('/lobby')
   }
 
   return (
