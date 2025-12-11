@@ -4,6 +4,7 @@ import './Login.css'
 import './AccountDetails.css'
 import './FormStyles.css'
 import Navigation from '../components/Navigation'
+import { apiFetch } from '../lib/api'
 
 function AccountDetails() {
   const navigate = useNavigate()
@@ -17,13 +18,12 @@ function AccountDetails() {
     }
 
     return {
-      name: 'Alex Rivera',
-      email: 'alexrivera@example.com',
-      role: 'Committee Member',
-      joinDate: 'January 2024',
-      phone: '555-555-5555',
-      bio: 'Hi, I am Alex Rivera, a dedicated committee member passionate about events,'+
-      'planning and event planning. I also like cats.',
+      name: '',
+      email: '',
+      role: '',
+      joinDate: '',
+      phone: '',
+      bio: '',
       avatar: '' // base64 data URL or remote URL
     }
   })
@@ -40,7 +40,7 @@ function AccountDetails() {
     if (!token) return
     (async () => {
       try {
-        const res = await fetch('/api/user/me', {
+        const res = await apiFetch('/api/user/me', {
           headers: { 'Authorization': `Bearer ${token}` }
         })
         const data = await res.json()
@@ -55,7 +55,7 @@ function AccountDetails() {
             const ids = data.user.committee_memberships.map(String)
             const fetched = await Promise.all(ids.map(async (id) => {
               try {
-                const r = await fetch(`/api/committee/${encodeURIComponent(id)}`, { headers: { 'Authorization': `Bearer ${token}` } })
+                const r = await apiFetch(`/api/committee/${encodeURIComponent(id)}`, { headers: { 'Authorization': `Bearer ${token}` } })
                 if (!r.ok) return null
                 const committee = await r.json().catch(() => null)
                 if (!committee) return null

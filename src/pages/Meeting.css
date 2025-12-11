@@ -33,9 +33,55 @@
   box-shadow: 0 4px 12px rgba(188, 108, 37, 0.3);
 }
 
+.leave-meeting-btn {
+  padding: 8px 14px;
+  background: transparent;
+  color: var(--tigers-eye);
+  border: 2px solid rgba(156, 74, 26, 0.12);
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 700;
+  margin-left: 8px;
+}
+
+.leave-meeting-btn:hover {
+  background: rgba(156, 74, 26, 0.04);
+}
+
 .chair-controls-btn:hover {
   transform: translateY(-2px);
   box-shadow: 0 6px 20px rgba(188, 108, 37, 0.4);
+}
+
+.meeting-code {
+  background: rgba(221, 161, 94, 0.08);
+  padding: 6px 10px;
+  margin-left: 8px;
+  border-radius: 8px;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-weight: 600;
+}
+
+.copy-code-btn, .share-code-btn {
+  border: none;
+  background: transparent;
+  color: var(--pakistan-green);
+  font-weight: 700;
+  cursor: pointer;
+  padding: 6px 8px;
+  border-radius: 6px;
+}
+
+.copy-code-btn:hover, .share-code-btn:hover {
+  background: rgba(96, 108, 56, 0.06);
+}
+
+.meeting-code-copied, .meeting-code-shared {
+  margin-left: 8px;
+  color: var(--tigers-eye);
+  font-weight: 700;
 }
 
 /* Dashboard Grid */

@@ -6,7 +6,7 @@ function NewMotionModal({ onClose, onCreateMotion, currentUser }) {
   const [description, setDescription] = useState('')
   const [error, setError] = useState('')
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault()
     setError('')
 
@@ -20,12 +20,16 @@ function NewMotionModal({ onClose, onCreateMotion, currentUser }) {
       return
     }
 
-    onCreateMotion({
+    const ok = await onCreateMotion({
       title: title.trim(),
       description: description.trim()
     })
 
-    onClose()
+    if (ok) {
+      onClose()
+    } else {
+      setError('Failed to create motion — please try again or contact the chair')
+    }
   }
 
   return (

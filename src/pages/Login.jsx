@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import './Login.css'
+import { apiUrl } from '../lib/api'
 
 function Login() {
   const [email, setEmail] = useState('')
@@ -41,7 +42,7 @@ function Login() {
     if (!validateForm()) return
     
     try {
-      const response = await fetch('/.netlify/functions/login', {
+      const response = await fetch(apiUrl('/api/login'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password })
@@ -49,12 +50,12 @@ function Login() {
       
       const data = await response.json()
       
-      if (response.status === 200 && data.success) {
+         if (response.status === 200 && data.success) {
         try {
           if (data.token) localStorage.setItem('token', data.token)
           if (data.user) localStorage.setItem('userInfo', JSON.stringify(data.user))
         } catch (e) { console.error('Failed to persist auth info', e) }
-        navigate('/meeting')
+           navigate('/lobby')
       } else {
         setError(data.message || 'Login failed')
       }
@@ -70,7 +71,7 @@ function Login() {
 
   const handleGuestSignIn = () => {
     sessionStorage.setItem('guest', 'true')
-    navigate('/meeting')
+    navigate('/lobby')
   }
 
   return (

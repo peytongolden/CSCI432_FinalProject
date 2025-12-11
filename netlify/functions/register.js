@@ -87,7 +87,7 @@ export async function handler(event, context) {
       headers,
       body: JSON.stringify({ 
         success: true, 
-        user: { id: result.insertedId, name, email } 
+        user: { id: result.insertedId.toString(), name, email } 
       })
     };
 

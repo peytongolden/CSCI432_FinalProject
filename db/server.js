@@ -77,7 +77,7 @@ app.post('/api/register', async (req, res) => {
         };
 
         const result = await db.collection('users').insertOne(userDoc);
-        return res.status(200).json({ success: true, user: { id: result.insertedId, name, email }});
+        return res.status(200).json({ success: true, user: { id: result.insertedId.toString(), name, email }});
     } catch (err) {
         console.error(err);
         return res.status(500).json({ success: false, message: 'Server error' });
@@ -104,7 +104,7 @@ app.post('/api/login', async (req, res) => {
         const token = jwt.sign({ id: user._id.toString(), email: user.email }, process.env.JWT_SECRET);
 
         const safeUser = { 
-            id: user._id,
+            id: user._id.toString(),
             name: user.name,
             email: user.email,
             committee_memberships: user.committee_memberships,
@@ -128,7 +128,10 @@ app.get('/api/user/me', authenticateToken, async (req, res) => {
     try {
         const user = await db.collection('users').findOne({ _id: new ObjectId(req.userId) });
         if (!user) return res.status(404).json({ success: false, message: 'User not found' });
-        delete user.password;
+        // Remove the hashed password before returning
+        delete user.password_hash;
+        // ensure id is a string for consistent JSON responses
+        if (user._id) user._id = user._id.toString();
         return res.status(200).json({ success: true, user });
     } catch (err) {
         console.error(err);

@@ -1,0 +1,19 @@
+# Render manifest for backend service
+# This defines a Web Service for the Express backend located in `db/`.
+# Edit values like `name` and `env` as needed before using.
+
+services:
+  - type: web
+    name: csci432-finalproject-backend
+    env: node
+    branch: main
+    plan: free
+    buildCommand: ""
+    startCommand: "npm run server"
+    autoDeploy: true
+    repo: "${REPO}" # replace or let Render auto-detect when creating from repo UI
+    envVars:
+      - key: MONGODB_URI
+        value: "$MONGODB_URI"
+      - key: JWT_SECRET
+        value: "$JWT_SECRET"

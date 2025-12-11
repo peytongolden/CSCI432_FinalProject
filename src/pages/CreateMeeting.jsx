@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { apiFetch } from '../lib/api'
 import { useNavigate } from 'react-router-dom';
 import './CreateJoinMeeting.css';
 import './FormStyles.css';
@@ -14,7 +15,7 @@ function CreateMeeting() {
       setLoadingGroups(true)
       try {
         const token = localStorage.getItem('token')
-        const res = await fetch('/api/user/me', { headers: token ? { Authorization: `Bearer ${token}` } : undefined })
+        const res = await apiFetch('/api/user/me', { headers: token ? { Authorization: `Bearer ${token}` } : undefined })
             if (res.ok) {
               const data = await res.json()
               if (mounted && data && data.user) {
@@ -31,7 +32,7 @@ function CreateMeeting() {
                   const ids = data.user.committee_memberships.map(String)
                   const fetched = await Promise.all(ids.map(async (id) => {
                     try {
-                      const r = await fetch(`/api/committee/${encodeURIComponent(id)}`, { headers: token ? { Authorization: `Bearer ${token}` } : undefined })
+                      const r = await apiFetch(`/api/committee/${encodeURIComponent(id)}`, { headers: token ? { Authorization: `Bearer ${token}` } : undefined })
                       if (!r.ok) return null
                       const committee = await r.json().catch(() => null)
                       if (!committee) return null
@@ -96,7 +97,7 @@ function CreateMeeting() {
     try {
       const token = localStorage.getItem('token')
       const datetime = meetingDate && meetingTime ? `${meetingDate}T${meetingTime}` : (meetingDate || null)
-      const res = await fetch('/api/meetings', {
+      const res = await apiFetch('/api/meetings', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
         body: JSON.stringify({ name: meetingName, datetime, description, committeeIds: groupsToOpen })
@@ -112,9 +113,10 @@ function CreateMeeting() {
       const data = await res.json()
       const meetingId = data.meetingId ? data.meetingId : data.meeting?._id
       const meetingCode = data.code
+      const creatorParticipantId = data.creatorParticipantId
 
-      // navigate into meeting page with the new meeting id
-      if (meetingId) navigate(`/meeting?meetingId=${meetingId}${meetingCode ? `&code=${meetingCode}` : ''}`)
+      // navigate into meeting page with the new meeting id and creator's participantId
+      if (meetingId) navigate(`/meeting?meetingId=${meetingId}${meetingCode ? `&code=${meetingCode}` : ''}${creatorParticipantId ? `&participantId=${creatorParticipantId}` : ''}`)
       else navigate('/meeting')
     } catch (err) {
       console.error('Create meeting failed', err)

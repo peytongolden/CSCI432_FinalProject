@@ -1,4 +1,6 @@
 import React, { useEffect, useState } from 'react';
+import ConfirmLeaveModal from '../components/ConfirmLeaveModal'
+import { apiFetch, apiUrl } from '../lib/api'
 import './CreateJoinMeeting.css';
 import './FormStyles.css';
 
@@ -13,7 +15,7 @@ function JoinMeeting() {
       setLoadingGroups(true)
       try {
         const token = localStorage.getItem('token')
-        const res = await fetch('/api/user/me', { headers: token ? { Authorization: `Bearer ${token}` } : undefined })
+        const res = await apiFetch('/api/user/me', { headers: token ? { Authorization: `Bearer ${token}` } : undefined })
         if (res.ok) {
           const data = await res.json()
           if (mounted && data && data.user) {
@@ -28,7 +30,7 @@ function JoinMeeting() {
               const ids = data.user.committee_memberships.map(String)
               const fetched = await Promise.all(ids.map(async (id) => {
                 try {
-                  const r = await fetch(`/api/committee/${encodeURIComponent(id)}`, { headers: token ? { Authorization: `Bearer ${token}` } : undefined })
+                  const r = await apiFetch(`/api/committee/${encodeURIComponent(id)}`, { headers: token ? { Authorization: `Bearer ${token}` } : undefined })
                   if (!r.ok) return null
                   const committee = await r.json().catch(() => null)
                   if (!committee) return null
@@ -79,17 +81,29 @@ function JoinMeeting() {
     return () => { mounted = false }
   }, [])
 
+  // Prefill meeting code if provided in URL query params
+  useEffect(() => {
+    try {
+      const params = new URLSearchParams(window.location.search)
+      const qcode = params.get('meetingCode')
+      if (qcode) {
+        const el = document.getElementById('meetingCode')
+        if (el) el.value = qcode
+      }
+    } catch (err) {}
+  }, [])
+
   const handleSubmit = (e) => {
     e.preventDefault();
     const form = new FormData(e.target)
     const meetingCode = form.get('meetingCode')
     const displayName = form.get('displayName')
-    console.log('Join requested', { meetingCode, displayName, groupId: selectedGroup })
+    console.log('Join requested', { meetingCode, displayName, groupId: selectedGroup });
 
     // Lookup meeting by code and attempt to join
-    (async () => {
+    ;(async () => {
       try {
-        const lookup = await fetch(`/api/meetings/code/${encodeURIComponent(meetingCode)}`)
+        const lookup = await apiFetch(`/api/meetings/code/${encodeURIComponent(meetingCode)}`)
         if (!lookup.ok) {
           const body = await lookup.json().catch(() => ({}))
           alert('Meeting not found or code invalid: ' + (body.message || lookup.statusText))
@@ -103,37 +117,64 @@ function JoinMeeting() {
         if (selectedGroup) {
           const ids = Array.isArray(meeting.committeeIds) ? meeting.committeeIds.map(i => (i && i.toString) ? i.toString() : String(i)) : []
           if (ids.length && !ids.includes(String(selectedGroup))) {
-            if (!confirm('The meeting you provided does not appear to be for the selected committee. Continue joining anyway?')) return
+            // Show confirmation modal instead of native confirm
+            setPendingJoin({ meeting, displayName })
+            setShowJoinConfirm(true)
+            return
           }
         }
 
         // request to join
-        const token = localStorage.getItem('token')
-        const joinRes = await fetch(`/api/meetings/${meeting._id || meeting.meetingId}/join`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
-          body: JSON.stringify({ displayName })
-        })
-
-        if (!joinRes.ok) {
-          const jb = await joinRes.json().catch(() => ({}))
-          alert('Failed to join meeting: ' + (jb.message || joinRes.statusText))
-          return
-        }
-
-        const joinData = await joinRes.json()
-        const participantId = joinData.participantId
-        const meetingId = joinData.meetingId || meeting._id
-
-        // Navigate into meeting with meetingId and participant id
-        if (meetingId) window.location.href = `/meeting?meetingId=${meetingId}${participantId ? `&participantId=${participantId}` : ''}`
-        else alert('Joined — but could not determine meeting location')
+        await performJoin(meeting, displayName)
       } catch (err) {
         console.error('Join flow failed', err)
         alert('Network error while joining meeting')
       }
     })()
   };
+
+  const [showJoinConfirm, setShowJoinConfirm] = useState(false)
+  const [pendingJoin, setPendingJoin] = useState(null)
+
+  const performJoin = async (meeting, displayName) => {
+    try {
+      const token = localStorage.getItem('token')
+      const joinRes = await apiFetch(`/api/meetings/${meeting._id || meeting.meetingId}/join`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+        body: JSON.stringify({ displayName })
+      })
+
+      if (!joinRes.ok) {
+        const jb = await joinRes.json().catch(() => ({}))
+        alert('Failed to join meeting: ' + (jb.message || joinRes.statusText))
+        return
+      }
+
+      const joinData = await joinRes.json()
+      const participantId = joinData.participantId
+      const meetingId = joinData.meetingId || meeting._id
+
+      // Navigate into meeting with meetingId and participant id
+      if (meetingId) window.location.href = `/meeting?meetingId=${meetingId}${participantId ? `&participantId=${participantId}` : ''}`
+      else alert('Joined — but could not determine meeting location')
+    } catch (err) {
+      console.error('Join flow failed', err)
+      alert('Network error while joining meeting')
+    }
+  }
+
+  const onConfirmJoinAnyway = async () => {
+    if (!pendingJoin) return
+    setShowJoinConfirm(false)
+    await performJoin(pendingJoin.meeting, pendingJoin.displayName)
+    setPendingJoin(null)
+  }
+
+  const onCancelJoin = () => {
+    setShowJoinConfirm(false)
+    setPendingJoin(null)
+  }
 
   return (
     <div className="container">
@@ -194,6 +235,17 @@ function JoinMeeting() {
           </button>
         </div>
       </form>
+      {showJoinConfirm && (
+        <ConfirmLeaveModal
+          isOpen={showJoinConfirm}
+          onConfirm={onConfirmJoinAnyway}
+          onCancel={onCancelJoin}
+          title="Join meeting?"
+          message="The meeting you provided does not appear to be for the selected committee. Continue joining anyway?"
+          confirmLabel="Join"
+          cancelLabel="Cancel"
+        />
+      )}
     </div>
   );
 }
