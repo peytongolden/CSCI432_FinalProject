@@ -161,7 +161,7 @@ function Meeting() {
   }, [meetingLoaded, meetingIdState])
 
   // Cast a vote
-  const castVote = (vote) => {
+  const castVote = async (vote) => {
     if (safeCurrentUser.hasVoted) {
       alert('You have already voted. Use "Change Vote" to modify your vote.')
       return
@@ -181,7 +181,7 @@ function Meeting() {
       hasVoted: true
     }))
 
-    // Update vote counts in motion
+    // Update vote counts in motion locally for immediate feedback
     setMotions(prevMotions =>
       prevMotions.map(motion =>
         motion.id === currentMotionId
@@ -201,6 +201,31 @@ function Meeting() {
     setTimeout(() => setVoteConfirmation(null), 3000)
 
     console.log(`Vote cast: ${vote} by ${safeCurrentUser.name}`)
+
+    // Also persist vote to backend if we have a meeting
+    if (meetingIdState) {
+      try {
+        const token = localStorage.getItem('token')
+        let uid = null
+        try {
+          if (token) {
+            const payload = JSON.parse(atob(token.split('.')[1]))
+            uid = payload?.id || payload?.userId
+          }
+        } catch (e) {}
+        const bodyObj = { action: 'castVote', motionId: currentMotionId, vote }
+        if (safeCurrentUser.id) bodyObj.participantId = safeCurrentUser.id
+        if (uid) bodyObj.uid = uid
+        await apiFetch(`/api/meetings/${encodeURIComponent(meetingIdState)}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+          body: JSON.stringify(bodyObj)
+        })
+      } catch (err) {
+        // swallow errors — UI updated optimistically
+        console.warn('Failed to persist vote', err)
+      }
+    }
   }
 
   // Change vote
@@ -232,46 +257,95 @@ function Meeting() {
 
   // Create new motion
   const createNewMotion = (motionData) => {
-    const newMotion = {
-      id: nextMotionId,
-      title: motionData.title,
-      description: motionData.description,
-      status: 'voting',
-      createdBy: safeCurrentUser.id,
-      votes: {
-        yes: 0,
-        no: 0,
-        abstain: 0
+    // If we don't have a meetingId, fallback to local behavior for now
+    if (!meetingIdState) {
+      const newMotion = {
+        id: nextMotionId,
+        title: motionData.title,
+        description: motionData.description,
+        status: 'proposed',
+        createdBy: safeCurrentUser.id,
+        votes: {
+          yes: 0,
+          no: 0,
+          abstain: 0
+        }
       }
+      setMotions(prev => [...prev, newMotion])
+      setCurrentMotionId(nextMotionId)
+      setNextMotionId(prev => prev + 1)
+      console.log('New motion created (local):', newMotion)
+      return
     }
 
-    setMotions(prev => [...prev, newMotion])
-    setCurrentMotionId(nextMotionId)
-    setNextMotionId(prev => prev + 1)
-    
-    console.log('New motion created:', newMotion)
+    (async () => {
+      try {
+        const token = localStorage.getItem('token')
+        const res = await apiFetch(`/api/meetings/${encodeURIComponent(meetingIdState)}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+          body: JSON.stringify({ action: 'addMotion', title: motionData.title, description: motionData.description, createdByParticipantId: safeCurrentUser.id })
+        })
+        if (!res.ok) {
+          const body = await res.json().catch(() => null)
+          console.warn('Failed to add motion', body)
+          alert('Failed to create motion: ' + (body?.message || res.statusText))
+          return
+        }
+        const body = await res.json().catch(() => null)
+        if (!body || !body.motion) return
+        const m = body.motion
+        const newMotion = { id: m.id, title: m.title, description: m.description, status: m.status || 'proposed', createdBy: m.createdBy || safeCurrentUser.id, votes: { yes: 0, no: 0, abstain: 0 } }
+        setMotions(prev => [...prev, newMotion])
+        setCurrentMotionId(newMotion.id)
+        console.log('New motion created (server):', newMotion)
+      } catch (err) {
+        console.warn('Failed to create motion', err)
+        alert('Failed to create motion')
+      }
+    })()
   }
 
   // Control functions
-  const endVoting = () => {
-    setMotions(prevMotions =>
-      prevMotions.map(motion =>
-        motion.id === currentMotionId
-          ? { ...motion, status: 'completed' }
-          : motion
-      )
-    )
-    
-    const votes = safeCurrentMotion.votes
-    const total = votes.yes + votes.no + votes.abstain
-    const majority = total / 2
-    
-    let result = 'Tied'
-    if (votes.yes > majority) result = 'Passed'
-    else if (votes.no > majority) result = 'Failed'
-    
-    alert(`Voting ended.\n\nResults:\nYes: ${votes.yes}\nNo: ${votes.no}\nAbstain: ${votes.abstain}\n\nOutcome: ${result}`)
-    setShowControlsModal(false)
+  const endVoting = async () => {
+    // Only allow presiding officer to end voting via server
+    if (safeCurrentUser.role !== 'chair') {
+      alert('Only the presiding officer can end voting')
+      return
+    }
+    if (!meetingIdState) {
+      // offline fallback
+      setMotions(prevMotions => prevMotions.map(motion => motion.id === currentMotionId ? { ...motion, status: 'completed' } : motion))
+      setShowControlsModal(false)
+      return
+    }
+    try {
+      const token = localStorage.getItem('token')
+      const res = await apiFetch(`/api/meetings/${encodeURIComponent(meetingIdState)}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+        body: JSON.stringify({ action: 'endVoting', motionId: currentMotionId })
+      })
+      if (!res.ok) {
+        const body = await res.json().catch(() => null)
+        console.warn('Failed to end voting', body)
+        alert('Failed to end voting: ' + (body?.message || res.statusText))
+        return
+      }
+      // Update local state optimistically
+      setMotions(prevMotions => prevMotions.map(motion => motion.id === currentMotionId ? { ...motion, status: 'completed' } : motion))
+      const votes = safeCurrentMotion.votes
+      const total = votes.yes + votes.no + votes.abstain
+      const majority = total / 2
+      let result = 'Tied'
+      if (votes.yes > majority) result = 'Passed'
+      else if (votes.no > majority) result = 'Failed'
+      alert(`Voting ended.\n\nResults:\nYes: ${votes.yes}\nNo: ${votes.no}\nAbstain: ${votes.abstain}\n\nOutcome: ${result}`)
+      setShowControlsModal(false)
+    } catch (err) {
+      console.warn('Failed to end voting', err)
+      alert('Failed to end voting')
+    }
   }
 
   const startNewMotion = () => {
@@ -293,6 +367,42 @@ function Meeting() {
 
   const selectMotion = (motion) => {
     setCurrentMotionId(motion.id)
+  }
+
+  // Start voting on selected motion
+  const startVoting = async (motionId) => {
+    // only chair can start voting
+    if (safeCurrentUser.role !== 'chair') {
+      alert('Only the presiding officer can start voting')
+      return
+    }
+    if (!meetingIdState) {
+      // local fallback
+      setMotions(prev => prev.map(m => ({ ...m, status: m.id === motionId ? 'voting' : m.status })))
+      setCurrentMotionId(motionId)
+      setShowControlsModal(false)
+      return
+    }
+    try {
+      const token = localStorage.getItem('token')
+      const res = await apiFetch(`/api/meetings/${encodeURIComponent(meetingIdState)}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+        body: JSON.stringify({ action: 'startVoting', motionId })
+      })
+      if (!res.ok) {
+        const body = await res.json().catch(() => null)
+        console.warn('Failed to start voting', body)
+        alert('Failed to start voting: ' + (body?.message || res.statusText))
+        return
+      }
+      setMotions(prev => prev.map(m => ({ ...m, status: m.id === motionId ? 'voting' : m.status })))
+      setCurrentMotionId(motionId)
+      setShowControlsModal(false)
+    } catch (err) {
+      console.warn('Failed to start voting', err)
+      alert('Failed to start voting')
+    }
   }
 
   // Assign selected member as the presiding officer (chair) and persist if possible
@@ -523,14 +633,16 @@ function Meeting() {
       </div>
 
       {showControlsModal && (
-        <ControlsModal
+          <ControlsModal
           onClose={() => setShowControlsModal(false)}
           onEndVoting={endVoting}
           onStartNewMotion={startNewMotion}
+          onStartVoting={startVoting}
           onViewResults={viewResults}
           members={members}
           presidingOfficerId={presidingOfficer?.id}
           onAssignChair={assignChair}
+          motions={motions}
         />
       )}
 

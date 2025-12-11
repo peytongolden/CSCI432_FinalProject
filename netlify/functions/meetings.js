@@ -130,7 +130,7 @@ export async function handler(event, context) {
       };
     }
 
-    // PATCH - Update meeting metadata (e.g., presiding chair)
+    // PATCH - Update meeting metadata (e.g., presiding chair, motions, votes)
     if (event.httpMethod === 'PATCH') {
       try {
         // path: /api/meetings/:id
@@ -139,21 +139,96 @@ export async function handler(event, context) {
         if (!meetingId || !ObjectId.isValid(meetingId)) return { statusCode: 400, headers, body: JSON.stringify({ success: false, message: 'Invalid meeting ID' }) }
 
         const body = JSON.parse(event.body || '{}')
-        const { presidingParticipantId } = body
+        const { action } = body
+        const meeting = await db.collection('meetings').findOne({ _id: new ObjectId(meetingId) })
+        if (!meeting) return { statusCode: 404, headers, body: JSON.stringify({ success: false, message: 'Meeting not found' }) }
 
-        if (!presidingParticipantId) return { statusCode: 400, headers, body: JSON.stringify({ success: false, message: 'presidingParticipantId required' }) }
+        // Helper to look up participant by either participantId or token uid
+        const findParticipantByUid = (uid) => (meeting.participants || []).find(p => String(p.uid) === String(uid))
+        const findParticipantById = (pid) => (meeting.participants || []).find(p => String(p._id) === String(pid) || String(p._id?.$oid) === String(pid) || String(p._id) === String(pid))
 
-        // set role: 'chair' for the selected participant and 'member' for others
-        const update = await db.collection('meetings').findOne({ _id: new ObjectId(meetingId) })
-        if (!update) return { statusCode: 404, headers, body: JSON.stringify({ success: false, message: 'Meeting not found' }) }
+        // Role check for presiding officer
+        const isPresidingForUser = (decodedId) => {
+          if (!decodedId) return false
+          const p = findParticipantByUid(decodedId)
+          if (!p) return false
+          if (p.role === 'chair') return true
+          if (String(meeting.presidingParticipantId) && (String(p._id) === String(meeting.presidingParticipantId) || String(p.uid) === String(meeting.presidingParticipantId))) return true
+          return false
+        }
 
-        const updatedParticipants = (update.participants || []).map(p => {
-          if (String(p._id) === String(presidingParticipantId)) return { ...p, role: 'chair' }
-          return { ...p, role: 'member' }
-        })
+        if (!action) {
+          // fallback to previous behaviour: presidingParticipantId update
+          const { presidingParticipantId } = body
+          if (!presidingParticipantId) return { statusCode: 400, headers, body: JSON.stringify({ success: false, message: 'presidingParticipantId required' }) }
+          const updatedParticipants = (meeting.participants || []).map(p => ({ ...p, role: String(p._id) === String(presidingParticipantId) ? 'chair' : 'member' }))
+          await db.collection('meetings').updateOne({ _id: new ObjectId(meetingId) }, { $set: { participants: updatedParticipants, presidingParticipantId } })
+          return { statusCode: 200, headers, body: JSON.stringify({ success: true }) }
+        }
 
-        await db.collection('meetings').updateOne({ _id: new ObjectId(meetingId) }, { $set: { participants: updatedParticipants, presidingParticipantId: presidingParticipantId } })
-        return { statusCode: 200, headers, body: JSON.stringify({ success: true }) }
+        // Handle specific actions
+        switch (action) {
+          case 'addMotion': {
+            const { title, description, createdByParticipantId, createdByUid } = body
+            // disallow proposals while voting in progress
+            if (Array.isArray(meeting.motions) && meeting.motions.some(m => m.status === 'voting')) {
+              return { statusCode: 400, headers, body: JSON.stringify({ success: false, message: 'Cannot propose new motion while voting is in progress' }) }
+            }
+            const newMotion = {
+              id: new ObjectId().toString(),
+              title: title || 'Untitled',
+              description: description || '',
+              status: 'proposed',
+              createdBy: createdByParticipantId || createdByUid || null,
+              votesByParticipant: {},
+              createdAt: new Date()
+            }
+            await db.collection('meetings').updateOne({ _id: new ObjectId(meetingId) }, { $push: { motions: newMotion } })
+            return { statusCode: 200, headers, body: JSON.stringify({ success: true, motion: newMotion }) }
+          }
+          case 'startVoting': {
+            const { motionId } = body
+            // must be presiding officer
+            if (!isPresidingForUser(userId)) return { statusCode: 403, headers, body: JSON.stringify({ success: false, message: 'Not authorized' }) }
+            if (Array.isArray(meeting.motions) && meeting.motions.some(m => m.status === 'voting')) {
+              return { statusCode: 400, headers, body: JSON.stringify({ success: false, message: 'Another motion is currently open for voting' }) }
+            }
+            const updated = (meeting.motions || []).map(m => (m.id === motionId ? { ...m, status: 'voting' } : m))
+            await db.collection('meetings').updateOne({ _id: new ObjectId(meetingId) }, { $set: { motions: updated } })
+            return { statusCode: 200, headers, body: JSON.stringify({ success: true }) }
+          }
+          case 'endVoting': {
+            const { motionId } = body
+            if (!isPresidingForUser(userId)) return { statusCode: 403, headers, body: JSON.stringify({ success: false, message: 'Not authorized' }) }
+            const updated = (meeting.motions || []).map(m => (m.id === motionId ? { ...m, status: 'completed' } : m))
+            await db.collection('meetings').updateOne({ _id: new ObjectId(meetingId) }, { $set: { motions: updated } })
+            return { statusCode: 200, headers, body: JSON.stringify({ success: true }) }
+          }
+          case 'castVote': {
+            const { motionId, participantId, uid, vote } = body
+            if (!vote || !['yes', 'no', 'abstain'].includes(vote)) return { statusCode: 400, headers, body: JSON.stringify({ success: false, message: 'Invalid vote' }) }
+            const motion = (meeting.motions || []).find(m => m.id === motionId)
+            if (!motion) return { statusCode: 404, headers, body: JSON.stringify({ success: false, message: 'Motion not found' }) }
+            if (motion.status !== 'voting') return { statusCode: 400, headers, body: JSON.stringify({ success: false, message: 'Voting is not open for this motion' }) }
+
+            // Update votesByParticipant map
+            const identifier = participantId || uid || userId || null
+            if (!identifier) return { statusCode: 400, headers, body: JSON.stringify({ success: false, message: 'participantId or uid required' }) }
+
+            // update in-memory then persist whole motions array
+            const updated = (meeting.motions || []).map(m => {
+              if (m.id !== motionId) return m
+              const newVotes = Object.assign({}, m.votesByParticipant || {})
+              newVotes[String(identifier)] = vote
+              return { ...m, votesByParticipant: newVotes }
+            })
+            await db.collection('meetings').updateOne({ _id: new ObjectId(meetingId) }, { $set: { motions: updated } })
+            return { statusCode: 200, headers, body: JSON.stringify({ success: true }) }
+          }
+          default: {
+            return { statusCode: 400, headers, body: JSON.stringify({ success: false, message: 'Unknown action' }) }
+          }
+        }
       } catch (err) {
         console.error('PATCH MEETING failed', err)
         return { statusCode: 500, headers, body: JSON.stringify({ success: false, message: 'Server error' }) }

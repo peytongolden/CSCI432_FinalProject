@@ -63,6 +63,21 @@ export async function handler(event, context) {
       };
     }
 
+    // Compute vote tallies for each motion
+    if (Array.isArray(meeting.motions)) {
+      meeting.motions = meeting.motions.map(m => {
+        const votesByParticipant = m.votesByParticipant || {}
+        const counts = { yes: 0, no: 0, abstain: 0 }
+        for (const k of Object.keys(votesByParticipant)) {
+          const v = votesByParticipant[k]
+          if (v === 'yes') counts.yes++
+          else if (v === 'no') counts.no++
+          else if (v === 'abstain') counts.abstain++
+        }
+        return { ...m, votes: counts }
+      })
+    }
+
     return {
       statusCode: 200,
       headers,
