@@ -98,10 +98,10 @@ function JoinMeeting() {
     const form = new FormData(e.target)
     const meetingCode = form.get('meetingCode')
     const displayName = form.get('displayName')
-    console.log('Join requested', { meetingCode, displayName, groupId: selectedGroup })
+    console.log('Join requested', { meetingCode, displayName, groupId: selectedGroup });
 
     // Lookup meeting by code and attempt to join
-    (async () => {
+    ;(async () => {
       try {
         const lookup = await apiFetch(`/api/meetings/code/${encodeURIComponent(meetingCode)}`)
         if (!lookup.ok) {
@@ -126,20 +126,6 @@ function JoinMeeting() {
 
         // request to join
         await performJoin(meeting, displayName)
-
-        if (!joinRes.ok) {
-          const jb = await joinRes.json().catch(() => ({}))
-          alert('Failed to join meeting: ' + (jb.message || joinRes.statusText))
-          return
-        }
-
-        const joinData = await joinRes.json()
-        const participantId = joinData.participantId
-        const meetingId = joinData.meetingId || meeting._id
-
-        // Navigate into meeting with meetingId and participant id
-        if (meetingId) window.location.href = `/meeting?meetingId=${meetingId}${participantId ? `&participantId=${participantId}` : ''}`
-        else alert('Joined — but could not determine meeting location')
       } catch (err) {
         console.error('Join flow failed', err)
         alert('Network error while joining meeting')
