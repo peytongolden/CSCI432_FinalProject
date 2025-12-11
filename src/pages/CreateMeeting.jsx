@@ -115,7 +115,7 @@ function CreateMeeting() {
       const meetingCode = data.code
 
       // navigate into meeting page with the new meeting id
-      if (meetingId) navigate(`/meeting?meetingId=${meetingId}${meetingCode ? `&code=${meetingCode}` : ''}`)
+      if (meetingId) navigate(`/meeting?meetingId=${meetingId}${meetingCode ? `&code=${meetingCode}` : ''}${data.participantId ? `&participantId=${data.participantId}` : ''}`)
       else navigate('/meeting')
     } catch (err) {
       console.error('Create meeting failed', err)

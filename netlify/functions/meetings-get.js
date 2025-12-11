@@ -74,7 +74,7 @@ export async function handler(event, context) {
           else if (v === 'no') counts.no++
           else if (v === 'abstain') counts.abstain++
         }
-        return { ...m, votes: counts }
+        return { ...m, votes: counts, votesByParticipant }
       })
     }
 

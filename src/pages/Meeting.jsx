@@ -65,13 +65,32 @@ function Meeting() {
             const role = p.role || (String(p._id) === String(meet.presidingParticipantId) || String(p.uid) === String(meet.createdBy) ? 'chair' : 'member')
             return ({ id: pidStr, name: p.name || 'Guest', role, vote: null, uid: p.uid || null, _id: p._id })
           })
+          // If a voting motion exists, map votesByParticipant to member votes for the UI
+          const votingMotion = (meet.motions || []).find(m => m.status === 'voting')
+          if (votingMotion && votingMotion.votesByParticipant) {
+            const voteMap = votingMotion.votesByParticipant
+            for (const mem of mapped) {
+              const voteFor = voteMap[mem.id] || voteMap[mem.uid]
+              if (voteFor) mem.vote = voteFor
+            }
+          }
           setMembers(mapped)
+          // Also update safeCurrentUser vote status if matched
+          if (safeCurrentUser?.id) {
+            const me = mapped.find(m => String(m.id) === String(safeCurrentUser.id) || String(m.uid) === String(safeCurrentUser.id))
+            if (me) {
+              setCurrentUser(prev => ({ ...(prev || {}), id: me.id, name: me.name, role: me.role, hasVoted: !!me.vote, vote: me.vote }))
+            }
+          }
         }
 
         // set motions if present
         if (Array.isArray(meet.motions) && meet.motions.length) {
-          setMotions(meet.motions.map((m, idx) => ({ id: m.id || idx + 1, title: m.title || 'Untitled', description: m.description || '', status: m.status || 'voting', createdBy: m.createdBy || null, votes: m.votes || { yes: 0, no: 0, abstain: 0 } })))
-          setCurrentMotionId(prev => prev || (meet.motions[0]?.id || 1))
+          const mappedMotions = meet.motions.map((m, idx) => ({ id: m.id || idx + 1, title: m.title || 'Untitled', description: m.description || '', status: m.status || 'proposed', createdBy: m.createdBy || null, votes: m.votes || { yes: 0, no: 0, abstain: 0 }, votesByParticipant: m.votesByParticipant || {} }))
+          setMotions(mappedMotions)
+          const voting = mappedMotions.find(m => m.status === 'voting')
+          if (voting) setCurrentMotionId(voting.id)
+          else setCurrentMotionId(prev => prev || (mappedMotions[0]?.id || 1))
         }
 
         // if we have a participantId, try to make them the current user
@@ -80,8 +99,14 @@ function Meeting() {
           if (found) setCurrentUser({ id: String(found._id || participantId), name: found.name || 'Guest', role: found.role || 'member', hasVoted: false, vote: null })
           else setCurrentUser({ id: String(participantId), name: 'Guest', role: 'member', hasVoted: false, vote: null })
         } else if (userInfo && String(userInfo.id) === String(meet.createdBy)) {
-          // if we're the creator (authenticated), make us the current user with chair role
-          setCurrentUser(prev => ({ ...(prev || {}), id: String(userInfo.id), name: userInfo.name || 'Guest', role: 'chair' }))
+          // if we're the creator (authenticated), try to find their participant entry and use it if available
+          const foundCreator = Array.isArray(meet.participants) && meet.participants.find(p => String(p.uid || p._id) === String(userInfo.id))
+          if (foundCreator) {
+            const pid = foundCreator._id || foundCreator._id?.$oid || foundCreator.uid || userInfo.id
+            setCurrentUser({ id: String(pid), name: foundCreator.name || userInfo.name || 'Guest', role: foundCreator.role || 'chair', hasVoted: false, vote: null })
+          } else {
+            setCurrentUser(prev => ({ ...(prev || {}), id: String(userInfo.id), name: userInfo.name || 'Guest', role: 'chair' }))
+          }
         }
 
         // indicate we've loaded an actual meeting
@@ -142,7 +167,13 @@ function Meeting() {
         // update committee name/code and participants/motions
         if (meet.name) setCommittee(prev => ({ ...(prev || {}), name: meet.name, sessionActive: !!meet.active }))
         if (meet.code) setMeetingCode(meet.code)
-        if (Array.isArray(meet.motions) && meet.motions.length) setMotions(meet.motions.map((m, idx) => ({ id: m.id || idx + 1, title: m.title || 'Untitled', description: m.description || '', status: m.status || 'voting', createdBy: m.createdBy || null, votes: m.votes || { yes: 0, no: 0, abstain: 0 } })))
+        if (Array.isArray(meet.motions) && meet.motions.length) {
+          const mappedMotions = meet.motions.map((m, idx) => ({ id: m.id || idx + 1, title: m.title || 'Untitled', description: m.description || '', status: m.status || 'proposed', createdBy: m.createdBy || null, votes: m.votes || { yes: 0, no: 0, abstain: 0 }, votesByParticipant: m.votesByParticipant || {} }))
+          setMotions(mappedMotions)
+          // If a motion is in voting state on server, make it the currentMotion for this client
+          const voting = meet.motions.find(m => m.status === 'voting')
+          if (voting) setCurrentMotionId(voting.id)
+        }
         if (Array.isArray(meet.participants) && meet.participants.length) {
           const mapped = meet.participants.map((p, idx) => {
             const pid = p._id || p._id?.$oid || p.uid || (idx + 1)
@@ -150,6 +181,15 @@ function Meeting() {
             const role = p.role || (String(p._id) === String(meet.presidingParticipantId) || String(p.uid) === String(meet.createdBy) ? 'chair' : 'member')
             return ({ id: pidStr, name: p.name || 'Guest', role, vote: null, uid: p.uid || null, _id: p._id })
           })
+          // If a voting motion exists at initial load, map votesByParticipant to member votes
+          const votingMotion = (meet.motions || []).find(m => m.status === 'voting')
+          if (votingMotion && votingMotion.votesByParticipant) {
+            const voteMap = votingMotion.votesByParticipant
+            for (const mem of mapped) {
+              const voteFor = voteMap[mem.id] || voteMap[mem.uid]
+              if (voteFor) mem.vote = voteFor
+            }
+          }
           setMembers(mapped)
         }
       } catch (err) {

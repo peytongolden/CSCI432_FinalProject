@@ -83,7 +83,7 @@ export async function handler(event, context) {
     );
 
     const safeUser = {
-      id: user._id,
+      id: user._id.toString(),
       name: user.name,
       email: user.email,
       committee_memberships: user.committee_memberships,

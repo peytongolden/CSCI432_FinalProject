@@ -4,12 +4,13 @@ import { useState } from 'react'
 function ControlsModal({ onClose, onEndVoting, onStartNewMotion, onViewResults, onStartVoting, members = [], presidingOfficerId = null, onAssignChair, motions = [] }) {
   const [selected, setSelected] = useState(presidingOfficerId || (members[0] && members[0].id) || '')
   const [selectedMotion, setSelectedMotion] = useState(motions[0]?.id || '')
+  const hasVoting = (motions || []).some(m => m.status === 'voting')
   return (
     <div className="controls-modal" onClick={onClose}>
       <div className="modal-content" onClick={(e) => e.stopPropagation()}>
         <h3>Chair Controls</h3>
         <button onClick={onEndVoting}>End Voting</button>
-        <button onClick={onStartNewMotion}>New Motion</button>
+        <button onClick={onStartNewMotion} disabled={hasVoting}>New Motion</button>
         <div style={{ marginTop: '0.5rem' }}>
           <label htmlFor="start-voting-select">Start Voting On</label>
           <select id="start-voting-select" value={selectedMotion} onChange={(e) => setSelectedMotion(e.target.value)}>

@@ -126,7 +126,7 @@ export async function handler(event, context) {
       return {
         statusCode: 201,
         headers,
-        body: JSON.stringify({ success: true, meetingId: result.insertedId, code: meeting.code })
+        body: JSON.stringify({ success: true, meetingId: result.insertedId, code: meeting.code, participantId: meeting.presidingParticipantId ? String(meeting.presidingParticipantId) : null })
       };
     }
 
@@ -160,8 +160,8 @@ export async function handler(event, context) {
         if (!action) {
           // fallback to previous behaviour: presidingParticipantId update
           const { presidingParticipantId } = body
-          if (!presidingParticipantId) return { statusCode: 400, headers, body: JSON.stringify({ success: false, message: 'presidingParticipantId required' }) }
-          const updatedParticipants = (meeting.participants || []).map(p => ({ ...p, role: String(p._id) === String(presidingParticipantId) ? 'chair' : 'member' }))
+            if (!presidingParticipantId) return { statusCode: 400, headers, body: JSON.stringify({ success: false, message: 'presidingParticipantId required' }) }
+            const updatedParticipants = (meeting.participants || []).map(p => ({ ...p, role: (String(p._id) === String(presidingParticipantId) || String(p.uid) === String(presidingParticipantId)) ? 'chair' : 'member' }))
           await db.collection('meetings').updateOne({ _id: new ObjectId(meetingId) }, { $set: { participants: updatedParticipants, presidingParticipantId } })
           return { statusCode: 200, headers, body: JSON.stringify({ success: true }) }
         }
