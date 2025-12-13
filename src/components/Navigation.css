@@ -59,10 +59,20 @@
 .nav-link.logout {
   background-color: rgba(188, 108, 37, 0.3);
   margin-left: 10px;
+  border: none;
+  cursor: pointer;
+  font-family: inherit;
 }
 
 .nav-link.logout:hover {
   background-color: var(--tigers-eye);
+}
+
+button.nav-link {
+  border: none;
+  cursor: pointer;
+  font-family: inherit;
+  background: transparent;
 }
 
 @media (max-width: 768px) {

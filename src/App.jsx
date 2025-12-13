@@ -6,6 +6,7 @@ import CreateJoinMeeting from './pages/CreateJoinMeeting'
 import CreateMeeting from './pages/CreateMeeting'
 import JoinMeeting from './pages/JoinMeeting'
 import Meeting from './pages/Meeting'
+import Committees from './pages/Committees'
 import Help from './pages/Help'
 
 function App() {
@@ -17,9 +18,9 @@ function App() {
         <Route path="/register" element={<Registration />} />
         <Route path="/account" element={<AccountDetails />} />
         <Route path="/lobby" element={<CreateJoinMeeting />} />
+        <Route path="/committees" element={<Committees />} />
         <Route path="/create-meeting" element={<CreateMeeting />} />
         <Route path="/join-meeting" element={<JoinMeeting />} />
-        {/* committee pages removed — uses per-committee meeting flows instead */}
         <Route path="/meeting" element={<Meeting />} />
         <Route path="/help" element={<Help />} />
       </Routes>

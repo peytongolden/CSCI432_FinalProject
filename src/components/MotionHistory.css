@@ -66,6 +66,54 @@
   color: white;
 }
 
+.motion-result.postponed {
+  background: linear-gradient(135deg, #9c27b0, #7b1fa2);
+  color: white;
+}
+
+.history-badges {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.motion-type-badge {
+  padding: 3px 10px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.motion-type-badge.procedural {
+  background: rgba(255, 152, 0, 0.2);
+  color: #e65100;
+}
+
+.motion-type-badge.amendment {
+  background: rgba(33, 150, 243, 0.2);
+  color: #1565c0;
+}
+
+.motion-type-badge.postpone {
+  background: rgba(156, 39, 176, 0.2);
+  color: #7b1fa2;
+}
+
+.history-summary {
+  margin-top: 10px;
+  padding: 10px;
+  background: rgba(96, 108, 56, 0.1);
+  border-radius: 6px;
+  font-size: 13px;
+  color: var(--pakistan-green);
+  line-height: 1.4;
+}
+
+.history-summary strong {
+  color: var(--dark-moss-green);
+}
+
 .history-item-description {
   font-size: 14px;
   color: var(--tigers-eye);

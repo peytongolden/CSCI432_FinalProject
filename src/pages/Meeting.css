@@ -20,6 +20,43 @@
   font-weight: 700;
 }
 
+.header-info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.meeting-code {
+  font-size: 14px;
+  color: var(--tigers-eye);
+  font-weight: 500;
+  background: rgba(188, 108, 37, 0.1);
+  padding: 4px 12px;
+  border-radius: 4px;
+  width: fit-content;
+}
+
+.header-actions {
+  display: flex;
+  gap: 12px;
+}
+
+.discussion-toggle-btn {
+  padding: 12px 24px;
+  background: linear-gradient(135deg, var(--dark-moss-green), var(--pakistan-green));
+  color: var(--cornsilk);
+  border: none;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.discussion-toggle-btn:hover {
+  transform: translateY(-2px);
+}
+
 .chair-controls-btn {
   padding: 12px 30px;
   background: linear-gradient(135deg, var(--tigers-eye), #9c4a1a);
@@ -286,6 +323,189 @@
 .history-card {
   grid-column: 1 / 13;
   grid-row: 3 / 4;
+}
+
+/* Discussion Card */
+.discussion-card {
+  grid-column: 1 / 13;
+  grid-row: auto;
+}
+
+.dashboard-grid.with-discussion .discussion-card {
+  grid-column: 1 / 6;
+  grid-row: 2 / 4;
+}
+
+.dashboard-grid.with-discussion .motion-card {
+  grid-column: 1 / 9;
+  grid-row: 1 / 2;
+}
+
+.dashboard-grid.with-discussion .tally-card {
+  grid-column: 6 / 9;
+  grid-row: 2 / 3;
+}
+
+/* Motion Badges */
+.motion-badges {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.motion-type {
+  padding: 4px 12px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.motion-type.procedural {
+  background: rgba(255, 152, 0, 0.2);
+  color: #e65100;
+}
+
+.motion-type.amendment {
+  background: rgba(33, 150, 243, 0.2);
+  color: #1565c0;
+}
+
+.motion-type.postpone {
+  background: rgba(156, 39, 176, 0.2);
+  color: #7b1fa2;
+}
+
+.motion-status.postponed {
+  background: rgba(156, 39, 176, 0.2);
+  color: #7b1fa2;
+}
+
+/* Sub-motion indicator */
+.sub-motion-indicator {
+  font-size: 13px;
+  color: #666;
+  padding: 8px 12px;
+  background: rgba(0, 0, 0, 0.05);
+  border-radius: 6px;
+  margin-top: 12px;
+}
+
+/* Motion Result Banner */
+.motion-result-banner {
+  text-align: center;
+  padding: 12px 20px;
+  border-radius: 8px;
+  font-size: 16px;
+  font-weight: 600;
+  margin-top: 15px;
+}
+
+.motion-result-banner.passed {
+  background: rgba(76, 175, 80, 0.15);
+  color: #2e7d32;
+  border: 1px solid rgba(76, 175, 80, 0.3);
+}
+
+.motion-result-banner.failed {
+  background: rgba(244, 67, 54, 0.15);
+  color: #c62828;
+  border: 1px solid rgba(244, 67, 54, 0.3);
+}
+
+.motion-result-banner.tied {
+  background: rgba(255, 152, 0, 0.15);
+  color: #e65100;
+  border: 1px solid rgba(255, 152, 0, 0.3);
+}
+
+.motion-result-banner.postponed {
+  background: rgba(156, 39, 176, 0.15);
+  color: #7b1fa2;
+  border: 1px solid rgba(156, 39, 176, 0.3);
+}
+
+/* Chair Summary */
+.chair-summary {
+  margin-top: 20px;
+  padding: 15px;
+  background: rgba(96, 108, 56, 0.1);
+  border-radius: 8px;
+  border-left: 4px solid var(--dark-moss-green);
+}
+
+.chair-summary h4 {
+  margin: 0 0 8px 0;
+  color: var(--pakistan-green);
+  font-size: 14px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.chair-summary p {
+  margin: 0;
+  color: var(--pakistan-green);
+  line-height: 1.5;
+}
+
+/* No Motion State */
+.no-motion {
+  text-align: center;
+  padding: 40px 20px;
+  color: #666;
+}
+
+.no-motion p {
+  margin: 0;
+  font-size: 16px;
+}
+
+/* Loading and Error States */
+.loading-state,
+.error-state {
+  text-align: center;
+  padding: 60px 20px;
+  color: var(--pakistan-green);
+}
+
+.error-state h2 {
+  margin: 0 0 12px 0;
+  color: #c62828;
+}
+
+.error-state p {
+  margin: 0 0 20px 0;
+  color: #666;
+}
+
+.error-state button {
+  padding: 12px 24px;
+  background: var(--dark-moss-green);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 14px;
+}
+
+.no-votes {
+  text-align: center;
+  padding: 30px;
+  color: #888;
+}
+
+.majority-info {
+  font-size: 12px;
+  color: #e65100;
+  background: rgba(255, 152, 0, 0.15);
+  padding: 4px 8px;
+  border-radius: 4px;
+}
+
+/* Voting Section in Motion Card */
+.voting-section {
+  margin-top: 20px;
+  padding-top: 20px;
+  border-top: 2px solid rgba(221, 161, 94, 0.2);
 }
 
 /* Responsive */

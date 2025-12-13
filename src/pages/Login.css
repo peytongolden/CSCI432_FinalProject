@@ -58,9 +58,14 @@
   transition: border-color 0.2s;
 }
 
+.form-row input::placeholder {
+  color: #888;
+}
+
 .form-row input:focus {
   outline: none;
   border-color: var(--tigers-eye);
+  box-shadow: 0 0 0 2px rgba(188, 108, 37, 0.2);
 }
 
 .error {

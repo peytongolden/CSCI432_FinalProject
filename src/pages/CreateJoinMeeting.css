@@ -62,6 +62,11 @@
   color: var(--pakistan-green);
 }
 
+.btn:focus {
+  outline: 3px solid var(--tigers-eye);
+  outline-offset: 3px;
+}
+
 .btn.primary {
   background: linear-gradient(135deg, var(--tigers-eye), #9c4a1a);
   color: var(--cornsilk);

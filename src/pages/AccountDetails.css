@@ -76,13 +76,30 @@
 .info-row input[type="tel"],
 .info-row textarea {
   width: 100%;
-  padding: 8px 10px;
-  border: 1px solid rgba(0,0,0,0.08);
+  padding: 10px 12px;
+  border: 2px solid var(--earth-yellow);
   border-radius: 6px;
   font-size: 16px;
+  color: #333;
+  background: white;
 }
 
-.info-row textarea { resize: vertical; }
+.info-row input::placeholder,
+.info-row textarea::placeholder {
+  color: #888;
+}
+
+.info-row input:focus,
+.info-row textarea:focus {
+  outline: none;
+  border-color: var(--tigers-eye);
+  box-shadow: 0 0 0 2px rgba(188, 108, 37, 0.2);
+}
+
+.info-row textarea { 
+  resize: vertical;
+  min-height: 80px;
+}
 
 .file-row input[type="file"] {
   margin-top: 8px;
