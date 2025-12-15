@@ -32,6 +32,7 @@ lerna-debug.log*
 .env.development.local
 .env.test.local
 .env.production.local
+create-env.ps1
 
 # Testing
 coverage/
@@ -39,4 +40,7 @@ coverage/
 
 # Misc
 .cache/
+temp_*.txt
 
+# Local Netlify folder
+.netlify

@@ -1,0 +1,17 @@
+# PowerShell script to create .env file
+# Run this with: .\create-env.ps1
+
+$envContent = @"
+# MongoDB Connection
+MONGODB_URI=your_mongodb_connection_string_here
+
+# JWT Secret for authentication
+JWT_SECRET=your_jwt_secret_here
+"@
+
+Set-Content -Path ".env" -Value $envContent
+Write-Host "✅ .env file created successfully!" -ForegroundColor Green
+Write-Host "⚠️  Remember to replace placeholder values with actual credentials!" -ForegroundColor Yellow
+Write-Host "Contents:" -ForegroundColor Cyan
+Get-Content ".env"
+

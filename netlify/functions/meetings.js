@@ -58,6 +58,8 @@ export async function handler(event, context) {
     const token = extractToken(event);
     const decoded = token ? verifyToken(token) : null;
     const userId = decoded?.id || null;
+    
+    console.log('[MEETINGS] Token present:', !!token, 'Decoded:', !!decoded, 'UserId:', userId);
 
     const db = await getDb();
 

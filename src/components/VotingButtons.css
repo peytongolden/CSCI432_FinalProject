@@ -1,27 +1,32 @@
+/* =====================================================
+   VOTING BUTTONS - Polished Styles
+   ===================================================== */
+
 .voting-buttons {
   display: flex;
-  gap: 15px;
+  gap: 14px;
   justify-content: center;
-  align-items: center;
+  align-items: stretch;
 }
 
 .vote-button {
   flex: 1;
   max-width: 180px;
-  padding: 18px 30px;
+  padding: 18px 28px;
   border: none;
   border-radius: 12px;
   font-size: 18px;
   font-weight: 700;
   cursor: pointer;
-  transition: all 0.3s ease;
+  transition: all 0.25s ease;
   text-transform: uppercase;
-  letter-spacing: 1px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  letter-spacing: 0.8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
   position: relative;
   overflow: hidden;
 }
 
+/* Ripple effect on hover */
 .vote-button::before {
   content: '';
   position: absolute;
@@ -30,28 +35,48 @@
   width: 0;
   height: 0;
   border-radius: 50%;
-  background: rgba(255, 255, 255, 0.3);
+  background: rgba(255, 255, 255, 0.25);
   transform: translate(-50%, -50%);
-  transition: width 0.6s, height 0.6s;
+  transition: width 0.5s ease, height 0.5s ease;
 }
 
 .vote-button:hover::before {
-  width: 300px;
-  height: 300px;
+  width: 250px;
+  height: 250px;
 }
 
 .vote-button:hover {
   transform: translateY(-3px);
-  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.25);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.18);
 }
 
 .vote-button:active {
   transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.vote-button:focus {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.4), 0 8px 24px rgba(0, 0, 0, 0.18);
+}
+
+/* Button Colors */
+.vote-yes-btn {
+  background: linear-gradient(135deg, #4caf50, #388e3c);
+  color: white;
+}
+
+.vote-yes-btn:hover {
+  background: linear-gradient(135deg, #43a047, #2e7d32);
 }
 
 .vote-no-btn {
-  background: linear-gradient(135deg, var(--tigers-eye), #9c4a1a);
+  background: linear-gradient(135deg, #f44336, #d32f2f);
   color: white;
+}
+
+.vote-no-btn:hover {
+  background: linear-gradient(135deg, #e53935, #c62828);
 }
 
 .vote-abstain-btn {
@@ -59,42 +84,42 @@
   color: var(--pakistan-green);
 }
 
-.vote-yes-btn {
-  background: linear-gradient(135deg, var(--dark-moss-green), var(--pakistan-green));
-  color: white;
+.vote-abstain-btn:hover {
+  background: linear-gradient(135deg, #d4a574, var(--tigers-eye));
 }
 
+/* Vote Status (after voting) */
 .vote-status {
   text-align: center;
-  padding: 25px;
-  background: linear-gradient(135deg, rgba(96, 108, 56, 0.1), rgba(96, 108, 56, 0.05));
-  border-radius: 12px;
-  border: 2px solid var(--earth-yellow);
+  padding: 28px 24px;
+  background: linear-gradient(135deg, rgba(96, 108, 56, 0.1) 0%, rgba(96, 108, 56, 0.05) 100%);
+  border-radius: 14px;
+  border: 2px solid rgba(96, 108, 56, 0.15);
 }
 
 .vote-status p {
   font-size: 20px;
   color: var(--pakistan-green);
-  margin-bottom: 15px;
-  font-weight: 600;
+  margin: 0 0 16px 0;
+  font-weight: 500;
 }
 
 .vote-status strong {
-  color: var(--tigers-eye);
+  color: var(--dark-moss-green);
   font-size: 24px;
+  font-weight: 700;
 }
 
 .change-vote-btn {
-  margin-top: 15px;
-  padding: 12px 30px;
+  padding: 14px 32px;
   background: linear-gradient(135deg, var(--earth-yellow), #d4a574);
   color: var(--pakistan-green);
   border: none;
-  border-radius: 8px;
+  border-radius: 10px;
   cursor: pointer;
   font-weight: 700;
   font-size: 16px;
-  transition: all 0.3s ease;
+  transition: all 0.25s ease;
   box-shadow: 0 4px 12px rgba(221, 161, 94, 0.3);
   text-transform: uppercase;
   letter-spacing: 0.5px;
@@ -107,9 +132,16 @@
   box-shadow: 0 6px 16px rgba(188, 108, 37, 0.4);
 }
 
-@media (max-width: 768px) {
+.change-vote-btn:focus {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(188, 108, 37, 0.3), 0 4px 12px rgba(221, 161, 94, 0.3);
+}
+
+/* Responsive */
+@media (max-width: 600px) {
   .voting-buttons {
     flex-direction: column;
+    gap: 10px;
   }
   
   .vote-button {

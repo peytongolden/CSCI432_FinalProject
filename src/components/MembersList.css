@@ -1,104 +1,125 @@
+/* =====================================================
+   MEMBERS LIST - Polished Styles
+   ===================================================== */
+
 .members-list-container {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 8px;
 }
 
+/* Member Row */
 .member-row {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 12px 15px;
-  background: linear-gradient(135deg, rgba(254, 250, 224, 0.4), rgba(254, 250, 224, 0.2));
+  padding: 12px 14px;
+  background: linear-gradient(135deg, rgba(254, 250, 224, 0.5) 0%, rgba(254, 250, 224, 0.3) 100%);
   border-radius: 10px;
   transition: all 0.2s ease;
-  border-left: 3px solid transparent;
   border: 1px solid rgba(221, 161, 94, 0.1);
 }
 
 .member-row:hover {
-  background: linear-gradient(135deg, rgba(221, 161, 94, 0.25), rgba(221, 161, 94, 0.15));
+  background: linear-gradient(135deg, rgba(221, 161, 94, 0.15) 0%, rgba(221, 161, 94, 0.08) 100%);
   transform: translateX(3px);
-  border-color: rgba(221, 161, 94, 0.2);
 }
 
+/* Special Roles */
 .member-row.presiding {
-  background: linear-gradient(135deg, rgba(188, 108, 37, 0.2), rgba(188, 108, 37, 0.1));
-  border-left-color: var(--tigers-eye);
+  background: linear-gradient(135deg, rgba(188, 108, 37, 0.15) 0%, rgba(188, 108, 37, 0.08) 100%);
   border-color: rgba(188, 108, 37, 0.2);
+  border-left: 4px solid var(--tigers-eye);
 }
 
 .member-row.floor {
-  background: linear-gradient(135deg, rgba(96, 108, 56, 0.2), rgba(96, 108, 56, 0.1));
-  border-left-color: var(--dark-moss-green);
+  background: linear-gradient(135deg, rgba(96, 108, 56, 0.15) 0%, rgba(96, 108, 56, 0.08) 100%);
   border-color: rgba(96, 108, 56, 0.2);
+  border-left: 4px solid var(--dark-moss-green);
 }
 
+/* Member Info */
 .member-info {
   display: flex;
   flex-direction: column;
-  gap: 3px;
+  gap: 2px;
 }
 
 .member-name {
-  font-size: 15px;
+  font-size: 16px;
   font-weight: 600;
   color: var(--pakistan-green);
 }
 
 .member-role {
-  font-size: 12px;
+  font-size: 13px;
   color: var(--tigers-eye);
-  font-weight: 500;
+  font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.5px;
 }
 
+/* Vote Badge */
 .vote-badge {
-  min-width: 32px;
-  height: 32px;
+  min-width: 38px;
+  height: 38px;
   display: flex;
   align-items: center;
   justify-content: center;
   border-radius: 8px;
   font-weight: 700;
-  font-size: 14px;
-  padding: 0 10px;
+  font-size: 15px;
+  transition: all 0.25s ease;
 }
 
 .vote-badge.vote-yes {
-  background: var(--dark-moss-green);
+  background: linear-gradient(135deg, #4caf50, #388e3c);
   color: white;
+  box-shadow: 0 2px 8px rgba(76, 175, 80, 0.3);
 }
 
 .vote-badge.vote-no {
-  background: var(--tigers-eye);
+  background: linear-gradient(135deg, #f44336, #d32f2f);
   color: white;
+  box-shadow: 0 2px 8px rgba(244, 67, 54, 0.3);
 }
 
 .vote-badge.vote-abstain {
-  background: var(--earth-yellow);
+  background: linear-gradient(135deg, var(--earth-yellow), #d4a574);
   color: var(--pakistan-green);
+  box-shadow: 0 2px 8px rgba(221, 161, 94, 0.3);
 }
 
 .vote-badge.vote-null {
-  background: rgba(96, 108, 56, 0.15);
-  color: var(--pakistan-green);
-  opacity: 0.6;
+  background: rgba(0, 0, 0, 0.06);
+  color: #999;
+  box-shadow: none;
 }
 
+/* Divider */
 .members-divider {
   height: 2px;
-  background: linear-gradient(90deg, transparent, rgba(221, 161, 94, 0.3), transparent);
-  margin: 10px 0;
+  background: linear-gradient(90deg, transparent, rgba(221, 161, 94, 0.25), transparent);
+  margin: 8px 0;
 }
 
+/* Responsive */
 @media (max-width: 768px) {
+  .member-row {
+    padding: 10px 12px;
+  }
+  
   .member-name {
-    font-size: 14px;
+    font-size: 13px;
   }
   
   .member-role {
-    font-size: 11px;
+    font-size: 10px;
+  }
+  
+  .vote-badge {
+    min-width: 30px;
+    height: 30px;
+    font-size: 12px;
   }
 }

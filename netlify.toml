@@ -57,6 +57,32 @@ from = "/api/meetings/:id/join"
 to = "/.netlify/functions/meetings-join"
 status = 200
 
+[[redirects]]
+from = "/api/meetings/:id/leave"
+to = "/.netlify/functions/meetings-leave"
+status = 200
+
+# Motions API - order matters (specific routes first)
+[[redirects]]
+from = "/api/motions/:motionId/vote"
+to = "/.netlify/functions/motions"
+status = 200
+
+[[redirects]]
+from = "/api/motions/:motionId/discuss"
+to = "/.netlify/functions/motions"
+status = 200
+
+[[redirects]]
+from = "/api/motions/:motionId"
+to = "/.netlify/functions/motions"
+status = 200
+
+[[redirects]]
+from = "/api/motions"
+to = "/.netlify/functions/motions"
+status = 200
+
 # SPA fallback - must be last
 [[redirects]]
 from = "/*"

@@ -45,7 +45,6 @@ function MotionHistory({ motions, onSelectMotion }) {
 
   return (
     <div className="motion-history">
-      <h3 className="history-title">Motion History</h3>
       <div className="history-list">
         {motions.map((motion) => {
           const result = getMotionResult(motion)
@@ -78,9 +77,41 @@ function MotionHistory({ motions, onSelectMotion }) {
                 <span className="vote-badge no">✗ {noCount}</span>
                 <span className="vote-badge abstain">— {abstainCount}</span>
               </div>
+              
               {motion.chairSummary && (
-                <div className="history-summary">
-                  <strong>Summary:</strong> {motion.chairSummary}
+                <div className="history-summary-section">
+                  <div className="history-summary">
+                    <strong>Decision Summary:</strong>
+                    <p>{motion.chairSummary}</p>
+                  </div>
+                  
+                  {motion.pros && motion.pros.length > 0 && (
+                    <div className="history-arguments pros">
+                      <strong>Arguments In Favor:</strong>
+                      <ul>
+                        {motion.pros.map((pro, idx) => (
+                          <li key={idx} className="arg-item pro">
+                            <span className="arg-icon">✓</span>
+                            {pro}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                  
+                  {motion.cons && motion.cons.length > 0 && (
+                    <div className="history-arguments cons">
+                      <strong>Arguments Against:</strong>
+                      <ul>
+                        {motion.cons.map((con, idx) => (
+                          <li key={idx} className="arg-item con">
+                            <span className="arg-icon">✗</span>
+                            {con}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
                 </div>
               )}
             </div>

@@ -1,16 +1,22 @@
+.motion-history {
+  max-height: 300px;
+  overflow-y: auto;
+}
+
 .history-list {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 10px;
 }
 
 .history-item {
-  background: linear-gradient(135deg, rgba(254, 250, 224, 0.3), rgba(254, 250, 224, 0.1));
-  padding: 18px;
-  border-radius: 12px;
+  background: linear-gradient(135deg, rgba(254, 250, 224, 0.5) 0%, rgba(254, 250, 224, 0.2) 100%);
+  padding: 14px 16px;
+  border-radius: 10px;
   border-left: 4px solid var(--earth-yellow);
   cursor: pointer;
-  transition: all 0.3s ease;
+  transition: all 0.25s ease;
+  border: 1px solid rgba(221, 161, 94, 0.1);
 }
 
 .history-item:hover {
@@ -30,7 +36,7 @@
 }
 
 .history-item-header h4 {
-  font-size: 17px;
+  font-size: 19px;
   color: var(--pakistan-green);
   margin: 0;
   flex: 1;
@@ -38,9 +44,9 @@
 }
 
 .motion-result {
-  padding: 5px 14px;
+  padding: 6px 16px;
   border-radius: 8px;
-  font-size: 12px;
+  font-size: 14px;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.5px;
@@ -78,9 +84,9 @@
 }
 
 .motion-type-badge {
-  padding: 3px 10px;
+  padding: 4px 12px;
   border-radius: 6px;
-  font-size: 11px;
+  font-size: 13px;
   font-weight: 600;
   text-transform: uppercase;
 }
@@ -100,22 +106,95 @@
   color: #7b1fa2;
 }
 
+.history-summary-section {
+  margin-top: 14px;
+  padding: 16px;
+  background: rgba(96, 108, 56, 0.06);
+  border-radius: 10px;
+  border-left: 4px solid var(--dark-moss-green);
+}
+
 .history-summary {
-  margin-top: 10px;
-  padding: 10px;
-  background: rgba(96, 108, 56, 0.1);
-  border-radius: 6px;
-  font-size: 13px;
+  font-size: 15px;
   color: var(--pakistan-green);
-  line-height: 1.4;
+  line-height: 1.5;
+  margin-bottom: 14px;
+}
+
+.history-summary:last-child {
+  margin-bottom: 0;
 }
 
 .history-summary strong {
+  display: block;
   color: var(--dark-moss-green);
+  font-size: 15px;
+  font-weight: 700;
+  margin-bottom: 6px;
+}
+
+.history-summary p {
+  margin: 0;
+  color: #555;
+}
+
+/* Arguments Lists */
+.history-arguments {
+  margin-top: 12px;
+}
+
+.history-arguments strong {
+  display: block;
+  font-size: 14px;
+  font-weight: 700;
+  margin-bottom: 8px;
+}
+
+.history-arguments.pros strong {
+  color: #2e7d32;
+}
+
+.history-arguments.cons strong {
+  color: #c62828;
+}
+
+.history-arguments ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.arg-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 8px 10px;
+  border-radius: 6px;
+  font-size: 14px;
+  line-height: 1.4;
+}
+
+.arg-item.pro {
+  background: rgba(76, 175, 80, 0.1);
+  color: #2e7d32;
+}
+
+.arg-item.con {
+  background: rgba(244, 67, 54, 0.1);
+  color: #c62828;
+}
+
+.arg-icon {
+  font-weight: 700;
+  font-size: 14px;
+  flex-shrink: 0;
 }
 
 .history-item-description {
-  font-size: 14px;
+  font-size: 16px;
   color: var(--tigers-eye);
   margin-bottom: 12px;
   line-height: 1.5;
@@ -128,9 +207,9 @@
 }
 
 .vote-badge {
-  padding: 4px 10px;
+  padding: 5px 12px;
   border-radius: 6px;
-  font-size: 12px;
+  font-size: 14px;
   font-weight: 700;
 }
 

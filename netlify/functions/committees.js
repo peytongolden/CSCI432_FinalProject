@@ -70,7 +70,8 @@ export default async (req, res) => {
         createdBy: decoded.id
       };
 
-      const result = await db.collection('committees').insertOne(committee);
+      const result = await db.collection(
+        'committees').insertOne(committee);
 
       // Add committee to user's memberships
       await db.collection('users').updateOne(

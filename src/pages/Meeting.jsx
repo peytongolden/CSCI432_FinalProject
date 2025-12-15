@@ -10,6 +10,8 @@ import ControlsModal from '../components/ControlsModal'
 import VoteConfirmation from '../components/VoteConfirmation'
 import NewMotionModal from '../components/NewMotionModal'
 import MotionHistory from '../components/MotionHistory'
+import DiscussionPanel from '../components/DiscussionPanel'
+import EndVoteModal from '../components/EndVoteModal'
 import Navigation from '../components/Navigation'
 
 function Meeting() {
@@ -40,16 +42,29 @@ function Meeting() {
     const meetingId = params.get('meetingId')
     const participantId = params.get('participantId')
 
-    if (!meetingId) return
+    console.log('[Meeting] Loading with params:', { meetingId, participantId })
+
+    if (!meetingId) {
+      console.warn('[Meeting] No meetingId in URL - cannot load meeting')
+      return
+    }
 
     ;(async () => {
       try {
+        console.log('[Meeting] Fetching meeting data from API...')
         const res = await apiFetch(`/api/meetings/${encodeURIComponent(meetingId)}`)
-        if (!res.ok) return
+        if (!res.ok) {
+          console.error('[Meeting] API call failed:', res.status, res.statusText)
+          return
+        }
         const body = await res.json().catch(() => null)
-        if (!body || !body.meeting) return
+        if (!body || !body.meeting) {
+          console.error('[Meeting] Invalid response body:', body)
+          return
+        }
 
       const meet = body.meeting
+      console.log('[Meeting] Successfully loaded meeting:', meet.name, 'with', meet.participants?.length || 0, 'participants')
           if (meetingId) setMeetingIdState(meetingId)
         // update committee name and data
         if (meet.name) {
@@ -68,23 +83,64 @@ function Meeting() {
           setMembers(mapped)
         }
 
-        // set motions if present
+        // set motions if present (convert vote arrays to counts)
         if (Array.isArray(meet.motions) && meet.motions.length) {
-          setMotions(meet.motions.map((m, idx) => ({ id: m.id || idx + 1, title: m.title || 'Untitled', description: m.description || '', status: m.status || 'voting', createdBy: m.createdBy || null, votes: m.votes || { yes: 0, no: 0, abstain: 0 } })))
-          setCurrentMotionId(prev => prev || (meet.motions[0]?.id || 1))
+          const convertVotes = (votes) => {
+            if (!votes) return { yes: 0, no: 0, abstain: 0 }
+            return {
+              yes: Array.isArray(votes.yes) ? votes.yes.length : (typeof votes.yes === 'number' ? votes.yes : 0),
+              no: Array.isArray(votes.no) ? votes.no.length : (typeof votes.no === 'number' ? votes.no : 0),
+              abstain: Array.isArray(votes.abstain) ? votes.abstain.length : (typeof votes.abstain === 'number' ? votes.abstain : 0)
+            }
+          }
+          setMotions(meet.motions.map((m, idx) => ({ 
+            id: m.id || String(m._id) || String(idx + 1), 
+            title: m.title || 'Untitled', 
+            description: m.description || '', 
+            status: m.status || 'voting', 
+            result: m.result || null,
+            createdBy: m.createdBy || null, 
+            votes: convertVotes(m.votes),
+            discussion: m.discussion || [],
+            _rawVotes: m.votes
+          })))
+          const firstMotionId = meet.motions[0]?.id || String(meet.motions[0]?._id) || '1'
+          setCurrentMotionId(prev => prev || firstMotionId)
         }
 
         // if we have a participantId, try to make them the current user
         if (participantId && Array.isArray(meet.participants)) {
           const found = meet.participants.find(p => String(p._id) === String(participantId) || String(p._id?.$oid) === String(participantId))
-          if (found) setCurrentUser({ id: String(found._id || participantId), name: found.name || 'Guest', role: found.role || 'member', hasVoted: false, vote: null })
-          else setCurrentUser({ id: String(participantId), name: 'Guest', role: 'member', hasVoted: false, vote: null })
+          if (found) {
+            console.log('[Meeting] Found participant by ID:', found.name, 'role:', found.role)
+            setCurrentUser({ id: String(found._id || participantId), name: found.name || 'Guest', role: found.role || 'member', hasVoted: false, vote: null })
+          } else {
+            console.log('[Meeting] Participant ID not found in list, defaulting to member')
+            setCurrentUser({ id: String(participantId), name: 'Guest', role: 'member', hasVoted: false, vote: null })
+          }
         } else if (userInfo && String(userInfo.id) === String(meet.createdBy)) {
           // if we're the creator (authenticated), make us the current user with chair role
-          setCurrentUser(prev => ({ ...(prev || {}), id: String(userInfo.id), name: userInfo.name || 'Guest', role: 'chair' }))
+          console.log('[Meeting] User is meeting creator - assigning chair role')
+          setCurrentUser(prev => ({ ...(prev || {}), id: String(userInfo.id), name: userInfo.name || 'Guest', role: 'chair', hasVoted: false, vote: null }))
+        } else if (meet.participants?.length === 0 || (!participantId && !meet.createdBy)) {
+          // If no participants yet and we're the only one here, assume chair role
+          console.log('[Meeting] No participants and no createdBy - assuming chair role for first user')
+          const tempId = userInfo?.id || 'temp_' + Date.now()
+          setCurrentUser({ id: String(tempId), name: userInfo?.name || 'Guest', role: 'chair', hasVoted: false, vote: null })
+        } else {
+          // Fallback: check if there's a presiding participant and we might be them
+          const presidingParticipant = meet.participants?.find(p => String(p._id) === String(meet.presidingParticipantId))
+          if (presidingParticipant && userInfo && String(presidingParticipant.uid) === String(userInfo.id)) {
+            console.log('[Meeting] User matches presiding participant by uid - assigning chair role')
+            setCurrentUser({ id: String(presidingParticipant._id), name: presidingParticipant.name || userInfo.name || 'Guest', role: 'chair', hasVoted: false, vote: null })
+          } else {
+            console.log('[Meeting] Could not determine user role - defaulting to member')
+            setCurrentUser({ id: userInfo?.id || 'guest', name: userInfo?.name || 'Guest', role: 'member', hasVoted: false, vote: null })
+          }
         }
 
         // indicate we've loaded an actual meeting
+        console.log('[Meeting] Setting meetingLoaded=true')
         setMeetingLoaded(true)
         try {
           sessionStorage.setItem('inMeeting', 'true')
@@ -100,6 +156,7 @@ function Meeting() {
 
   const [showControlsModal, setShowControlsModal] = useState(false)
   const [showNewMotionModal, setShowNewMotionModal] = useState(false)
+  const [showEndVoteModal, setShowEndVoteModal] = useState(false)
   const [showLeaveConfirm, setShowLeaveConfirm] = useState(false)
   const [voteConfirmation, setVoteConfirmation] = useState(null)
   const [nextMotionId, setNextMotionId] = useState(2)
@@ -126,6 +183,26 @@ function Meeting() {
     }
   }, [])
 
+  // Helper to convert backend vote arrays to counts
+  const convertVotesToCounts = (votes) => {
+    if (!votes) return { yes: 0, no: 0, abstain: 0 }
+    return {
+      yes: Array.isArray(votes.yes) ? votes.yes.length : (typeof votes.yes === 'number' ? votes.yes : 0),
+      no: Array.isArray(votes.no) ? votes.no.length : (typeof votes.no === 'number' ? votes.no : 0),
+      abstain: Array.isArray(votes.abstain) ? votes.abstain.length : (typeof votes.abstain === 'number' ? votes.abstain : 0)
+    }
+  }
+
+  // Helper to find a participant's vote from motion votes arrays
+  const findParticipantVote = (motionVotes, participantId) => {
+    if (!motionVotes || !participantId) return null
+    const pid = String(participantId)
+    if (Array.isArray(motionVotes.yes) && motionVotes.yes.some(v => String(v.participantId) === pid)) return 'yes'
+    if (Array.isArray(motionVotes.no) && motionVotes.no.some(v => String(v.participantId) === pid)) return 'no'
+    if (Array.isArray(motionVotes.abstain) && motionVotes.abstain.some(v => String(v.participantId) === pid)) return 'abstain'
+    return null
+  }
+
   // Poll the server for meeting updates (participants/motions) while loaded
   useEffect(() => {
     if (!meetingLoaded || !meetingIdState) return
@@ -139,18 +216,81 @@ function Meeting() {
         const meet = body.meeting
         if (!mounted) return
 
-        // update committee name/code and participants/motions
+        // Update committee name/code
         if (meet.name) setCommittee(prev => ({ ...(prev || {}), name: meet.name, sessionActive: !!meet.active }))
         if (meet.code) setMeetingCode(meet.code)
-        if (Array.isArray(meet.motions) && meet.motions.length) setMotions(meet.motions.map((m, idx) => ({ id: m.id || idx + 1, title: m.title || 'Untitled', description: m.description || '', status: m.status || 'voting', createdBy: m.createdBy || null, votes: m.votes || { yes: 0, no: 0, abstain: 0 } })))
+
+        // Update motions with proper vote count conversion
+        if (Array.isArray(meet.motions)) {
+          const updatedMotions = meet.motions.map((m, idx) => ({
+            id: m.id || String(m._id) || String(idx + 1),
+            title: m.title || 'Untitled',
+            description: m.description || '',
+            type: m.type || 'main',
+            status: m.status || 'voting',
+            result: m.result || null,
+            createdBy: m.createdBy || null,
+            votingThreshold: m.votingThreshold || 'simple',
+            isAnonymous: m.isAnonymous || false,
+            parentMotionId: m.parentMotionId || null,
+            chairSummary: m.chairSummary || '',
+            pros: m.pros || [],
+            cons: m.cons || [],
+            votes: convertVotesToCounts(m.votes),
+            discussion: m.discussion || [],
+            _rawVotes: m.votes // Keep raw votes for participant lookup
+          }))
+          
+          // Check if we need to update currentMotionId
+          setMotions(prevMotions => {
+            // If there are motions but no current motion is selected, select the latest one
+            if (updatedMotions.length > 0 && !currentMotionId) {
+              const latestMotion = updatedMotions[updatedMotions.length - 1]
+              setCurrentMotionId(latestMotion.id)
+              console.log('[Meeting] Auto-selected latest motion:', latestMotion.title)
+            }
+            // If a new motion was added (length increased), switch to the newest one
+            else if (updatedMotions.length > prevMotions.length) {
+              const newestMotion = updatedMotions[updatedMotions.length - 1]
+              setCurrentMotionId(newestMotion.id)
+              console.log('[Meeting] New motion detected, switching to:', newestMotion.title)
+            }
+            return updatedMotions
+          })
+        }
+
+        // Update participants and their vote displays
         if (Array.isArray(meet.participants) && meet.participants.length) {
+          // Find current motion's raw votes for participant vote display
+          const currentMotionData = meet.motions?.find(m => 
+            (m.id && String(m.id) === String(currentMotionId)) || 
+            (m._id && String(m._id) === String(currentMotionId))
+          )
+
           const mapped = meet.participants.map((p, idx) => {
             const pid = p._id || p._id?.$oid || p.uid || (idx + 1)
             const pidStr = String(pid)
             const role = p.role || (String(p._id) === String(meet.presidingParticipantId) || String(p.uid) === String(meet.createdBy) ? 'chair' : 'member')
-            return ({ id: pidStr, name: p.name || 'Guest', role, vote: null, uid: p.uid || null, _id: p._id })
+            // Get vote from current motion if available
+            const vote = currentMotionData ? findParticipantVote(currentMotionData.votes, pidStr) : null
+            return ({ id: pidStr, name: p.name || 'Guest', role, vote, uid: p.uid || null, _id: p._id })
           })
           setMembers(mapped)
+          
+          // Update current user's role and vote status
+          if (currentUser?.id) {
+            // Find current user in the updated participants to sync their role
+            const currentUserParticipant = mapped.find(m => String(m.id) === String(currentUser.id))
+            if (currentUserParticipant) {
+              const myVote = currentMotionData ? findParticipantVote(currentMotionData.votes, currentUser.id) : null
+              setCurrentUser(prev => ({ 
+                ...(prev || {}), 
+                role: currentUserParticipant.role,  // Sync role from backend
+                hasVoted: !!myVote, 
+                vote: myVote 
+              }))
+            }
+          }
         }
       } catch (err) {
         // ignore polling errors
@@ -158,30 +298,28 @@ function Meeting() {
     }, 5000)
 
     return () => { mounted = false; clearInterval(timer) }
-  }, [meetingLoaded, meetingIdState])
+  }, [meetingLoaded, meetingIdState, currentMotionId, currentUser?.id])
 
   // Cast a vote
-  const castVote = (vote) => {
+  const castVote = async (vote) => {
     if (safeCurrentUser.hasVoted) {
       alert('You have already voted. Use "Change Vote" to modify your vote.')
       return
     }
 
-    // Update user's vote in members
+    // Optimistically update UI first
     setMembers(prevMembers =>
       prevMembers.map(member =>
         member.id === safeCurrentUser.id ? { ...member, vote } : member
       )
     )
 
-    // Update current user
     setCurrentUser(prev => ({
       ...(prev || {}),
       vote,
       hasVoted: true
     }))
 
-    // Update vote counts in motion
     setMotions(prevMotions =>
       prevMotions.map(motion =>
         motion.id === currentMotionId
@@ -200,14 +338,37 @@ function Meeting() {
     setVoteConfirmation(vote)
     setTimeout(() => setVoteConfirmation(null), 3000)
 
+    // Persist to backend
+    if (meetingIdState && currentMotionId) {
+      try {
+        const token = localStorage.getItem('token')
+        const motionId = String(currentMotionId)
+        const res = await apiFetch(`/api/motions/${encodeURIComponent(motionId)}/vote`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+          body: JSON.stringify({
+            meetingId: meetingIdState,
+            participantId: safeCurrentUser.id,
+            participantName: safeCurrentUser.name,
+            vote
+          })
+        })
+        if (!res.ok) {
+          console.warn('Failed to persist vote to backend')
+        }
+      } catch (err) {
+        console.warn('Failed to persist vote', err)
+      }
+    }
+
     console.log(`Vote cast: ${vote} by ${safeCurrentUser.name}`)
   }
 
-  // Change vote
+  // Change vote - allows user to cast a new vote (the API handles removing old vote)
   const changeVote = () => {
     const oldVote = safeCurrentUser.vote
 
-    // Decrease old vote count
+    // Decrease old vote count locally
     setMotions(prevMotions =>
       prevMotions.map(motion =>
         motion.id === currentMotionId
@@ -215,63 +376,215 @@ function Meeting() {
               ...motion,
               votes: {
                 ...motion.votes,
-                [oldVote]: motion.votes[oldVote] - 1
+                [oldVote]: Math.max(0, motion.votes[oldVote] - 1)
               }
             }
           : motion
       )
     )
 
+    // Clear user's voted status so they can vote again
     setCurrentUser(prev => ({
       ...(prev || {}),
-      hasVoted: false
+      hasVoted: false,
+      vote: null
     }))
+
+    // Clear member's vote display
+    setMembers(prevMembers =>
+      prevMembers.map(member =>
+        member.id === safeCurrentUser.id ? { ...member, vote: null } : member
+      )
+    )
 
     console.log('Vote change enabled for user:', safeCurrentUser.name)
   }
 
   // Create new motion
-  const createNewMotion = (motionData) => {
+  const createNewMotion = async (motionData) => {
+    // Create optimistic local motion first
+    const tempId = `temp_${nextMotionId}`
     const newMotion = {
-      id: nextMotionId,
+      id: tempId,
       title: motionData.title,
       description: motionData.description,
+      type: motionData.type || 'main',
       status: 'voting',
       createdBy: safeCurrentUser.id,
+      votingThreshold: motionData.votingThreshold || 'simple',
+      isAnonymous: motionData.isAnonymous || false,
+      parentMotionId: motionData.parentMotionId || null,
       votes: {
         yes: 0,
         no: 0,
         abstain: 0
-      }
+      },
+      discussion: []
     }
 
     setMotions(prev => [...prev, newMotion])
-    setCurrentMotionId(nextMotionId)
+    setCurrentMotionId(tempId)
     setNextMotionId(prev => prev + 1)
     
+    // Persist to backend if we have a meeting
+    if (meetingIdState) {
+      try {
+        const token = localStorage.getItem('token')
+        const res = await apiFetch('/api/motions', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+          body: JSON.stringify({
+            meetingId: meetingIdState,
+            title: motionData.title,
+            description: motionData.description,
+            type: motionData.type || 'main',
+            isAnonymous: motionData.isAnonymous || false,
+            ...(motionData.parentMotionId && { parentMotionId: motionData.parentMotionId })
+          })
+        })
+        
+        if (res.ok) {
+          const data = await res.json()
+          if (data.success && data.motion) {
+            // Replace temp motion with the real one from backend
+            const backendMotion = {
+              id: data.motion.id || data.motion._id,
+              title: data.motion.title,
+              description: data.motion.description,
+              type: data.motion.type || 'main',
+              status: data.motion.status || 'voting',
+              createdBy: data.motion.createdBy,
+              votingThreshold: data.motion.votingThreshold || 'simple',
+              isAnonymous: data.motion.isAnonymous || false,
+              parentMotionId: data.motion.parentMotionId || null,
+              votes: {
+                yes: Array.isArray(data.motion.votes?.yes) ? data.motion.votes.yes.length : 0,
+                no: Array.isArray(data.motion.votes?.no) ? data.motion.votes.no.length : 0,
+                abstain: Array.isArray(data.motion.votes?.abstain) ? data.motion.votes.abstain.length : 0
+              },
+              discussion: data.motion.discussion || []
+            }
+            setMotions(prev => prev.map(m => m.id === tempId ? backendMotion : m))
+            setCurrentMotionId(backendMotion.id)
+            console.log('Motion persisted to backend:', backendMotion)
+          }
+        } else {
+          console.warn('Failed to persist motion to backend')
+        }
+      } catch (err) {
+        console.warn('Failed to create motion on backend', err)
+      }
+    }
+    
     console.log('New motion created:', newMotion)
+    return true // Signal success to caller
   }
 
   // Control functions
+  // Helper function to calculate voting result based on threshold
+  const calculateVotingResult = (votes, votingThreshold) => {
+    const yesVotes = votes.yes
+    const noVotes = votes.no
+    const totalVotes = yesVotes + noVotes // abstentions don't count toward threshold
+    
+    if (totalVotes === 0) return 'tied' // No votes cast
+    
+    let requiredVotes
+    let thresholdLabel
+    
+    switch (votingThreshold) {
+      case 'twoThirds':
+        requiredVotes = Math.ceil(totalVotes * (2/3))
+        thresholdLabel = '2/3 majority'
+        break
+      case 'unanimous':
+        requiredVotes = totalVotes
+        thresholdLabel = 'unanimous'
+        break
+      case 'simple':
+      default:
+        requiredVotes = Math.ceil(totalVotes / 2)
+        thresholdLabel = 'simple majority'
+    }
+    
+    if (yesVotes >= requiredVotes) return 'passed'
+    if (noVotes >= requiredVotes) return 'failed'
+    return 'tied' // Neither side has required threshold
+  }
+
+  // Show the end vote modal (chair will add summary)
   const endVoting = () => {
+    setShowControlsModal(false)
+    setShowEndVoteModal(true)
+  }
+
+  // Handle end vote with summary submission
+  const handleEndVoteWithSummary = async (summaryData) => {
+    const votes = safeCurrentMotion.votes
+    const votingThreshold = safeCurrentMotion.votingThreshold || 'simple'
+    const result = calculateVotingResult(votes, votingThreshold)
+
+    // Update local state
     setMotions(prevMotions =>
       prevMotions.map(motion =>
         motion.id === currentMotionId
-          ? { ...motion, status: 'completed' }
+          ? { 
+              ...motion, 
+              status: 'completed', 
+              result,
+              chairSummary: summaryData.summary,
+              pros: summaryData.pros,
+              cons: summaryData.cons
+            }
           : motion
       )
     )
     
-    const votes = safeCurrentMotion.votes
-    const total = votes.yes + votes.no + votes.abstain
-    const majority = total / 2
+    // Persist to backend
+    if (meetingIdState && currentMotionId) {
+      try {
+        const token = localStorage.getItem('token')
+        const motionId = String(currentMotionId)
+        await apiFetch(`/api/motions/${encodeURIComponent(motionId)}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+          body: JSON.stringify({
+            meetingId: meetingIdState,
+            status: 'completed',
+            result,
+            chairSummary: summaryData.summary,
+            pros: summaryData.pros,
+            cons: summaryData.cons
+          })
+        })
+        console.log('Voting ended with summary saved')
+      } catch (err) {
+        console.warn('Failed to end voting on backend', err)
+      }
+    }
     
-    let result = 'Tied'
-    if (votes.yes > majority) result = 'Passed'
-    else if (votes.no > majority) result = 'Failed'
+    setShowEndVoteModal(false)
     
-    alert(`Voting ended.\n\nResults:\nYes: ${votes.yes}\nNo: ${votes.no}\nAbstain: ${votes.abstain}\n\nOutcome: ${result}`)
-    setShowControlsModal(false)
+    // Show success message
+    const totalVotes = votes.yes + votes.no
+    let thresholdLabel = 'simple majority'
+    if (votingThreshold === 'twoThirds') thresholdLabel = '2/3 supermajority'
+    else if (votingThreshold === 'unanimous') thresholdLabel = 'unanimous vote'
+    const requiredForPass = votingThreshold === 'twoThirds' ? Math.ceil(totalVotes * (2/3)) : 
+                            votingThreshold === 'unanimous' ? totalVotes :
+                            Math.ceil(totalVotes / 2)
+    
+    alert(
+      `Voting ended successfully!\n\n` +
+      `Required: ${thresholdLabel}\n` +
+      `Needed to pass: ${requiredForPass} yes votes\n\n` +
+      `Results:\n` +
+      `Yes: ${votes.yes}\n` +
+      `No: ${votes.no}\n` +
+      `Abstain: ${votes.abstain}\n\n` +
+      `Outcome: ${result.charAt(0).toUpperCase() + result.slice(1)}\n\n` +
+      `Summary has been recorded.`
+    )
   }
 
   const startNewMotion = () => {
@@ -281,26 +594,96 @@ function Meeting() {
 
   const viewResults = () => {
     const votes = safeCurrentMotion.votes
-    const total = votes.yes + votes.no + votes.abstain
-    const majority = total / 2
+    const votingThreshold = safeCurrentMotion.votingThreshold || 'simple'
+    const result = calculateVotingResult(votes, votingThreshold)
     
-    let result = 'Tied'
-    if (votes.yes > majority) result = 'Passed'
-    else if (votes.no > majority) result = 'Failed'
+    const totalVotes = votes.yes + votes.no
+    const requiredForPass = votingThreshold === 'twoThirds' ? Math.ceil(totalVotes * (2/3)) : 
+                            votingThreshold === 'unanimous' ? totalVotes :
+                            Math.ceil(totalVotes / 2)
     
-    alert(`Motion Results:\n\nYes: ${votes.yes}\nNo: ${votes.no}\nAbstain: ${votes.abstain}\nTotal Votes: ${total}\n\nOutcome: ${result}`)
+    let thresholdLabel = 'simple majority'
+    if (votingThreshold === 'twoThirds') thresholdLabel = '2/3 supermajority'
+    else if (votingThreshold === 'unanimous') thresholdLabel = 'unanimous vote'
+    
+    alert(
+      `Motion Results:\n\n` +
+      `Required: ${thresholdLabel}\n` +
+      `Needed to pass: ${requiredForPass} yes votes\n\n` +
+      `Yes: ${votes.yes}\n` +
+      `No: ${votes.no}\n` +
+      `Abstain: ${votes.abstain}\n\n` +
+      `Current Outcome: ${result.charAt(0).toUpperCase() + result.slice(1)}`
+    )
   }
 
   const selectMotion = (motion) => {
     setCurrentMotionId(motion.id)
   }
 
+  // Add discussion comment
+  const addDiscussionComment = async (comment, stance) => {
+    if (!meetingIdState || !currentMotionId || !comment.trim()) return
+
+    // Optimistically add to local state
+    const newComment = {
+      _id: 'temp_' + Date.now(),
+      participantId: safeCurrentUser.id,
+      participantName: safeCurrentUser.name,
+      comment: comment.trim(),
+      stance: stance || 'neutral',
+      timestamp: new Date().toISOString()
+    }
+
+    setMotions(prevMotions =>
+      prevMotions.map(motion =>
+        motion.id === currentMotionId
+          ? { ...motion, discussion: [...(motion.discussion || []), newComment] }
+          : motion
+      )
+    )
+
+    // Persist to backend
+    try {
+      const token = localStorage.getItem('token')
+      const motionId = String(currentMotionId)
+      const res = await apiFetch(`/api/motions/${encodeURIComponent(motionId)}/discuss`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+        body: JSON.stringify({
+          meetingId: meetingIdState,
+          participantId: safeCurrentUser.id,
+          participantName: safeCurrentUser.name,
+          comment: comment.trim(),
+          stance: stance || 'neutral'
+        })
+      })
+      if (!res.ok) {
+        console.warn('Failed to persist discussion comment')
+      }
+    } catch (err) {
+      console.warn('Failed to add discussion comment', err)
+    }
+  }
+
   // Assign selected member as the presiding officer (chair) and persist if possible
   const assignChair = async (memberId) => {
+    console.log('[Meeting] Assigning chair to member:', memberId)
+    
+    // Optimistically update UI
     setMembers(prev => prev.map(m => ({ ...m, role: String(m.id) === String(memberId) ? 'chair' : 'member' })))
-    setCurrentUser(prev => ({ ...(prev || {}), role: String(prev?.id) === String(memberId) ? 'chair' : prev?.role }))
+    
+    // Update current user's role if they're the new chair
+    const isCurrentUserNewChair = String(currentUser?.id) === String(memberId)
+    if (isCurrentUserNewChair) {
+      setCurrentUser(prev => ({ ...(prev || {}), role: 'chair' }))
+      console.log('[Meeting] Current user is now chair')
+    } else if (currentUser?.role === 'chair') {
+      setCurrentUser(prev => ({ ...(prev || {}), role: 'member' }))
+      console.log('[Meeting] Current user role changed to member')
+    }
 
-    // persist to backend if we have a meeting id
+    // Persist to backend
     if (!meetingIdState) return
     try {
       const token = localStorage.getItem('token')
@@ -309,9 +692,18 @@ function Meeting() {
         headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
         body: JSON.stringify({ presidingParticipantId: memberId })
       })
-      if (!res.ok) console.warn('Failed to persist presiding officer change')
+      
+      if (res.ok) {
+        console.log('[Meeting] Presiding officer updated successfully')
+      } else {
+        console.warn('Failed to persist presiding officer change')
+        // Revert optimistic update on failure
+        setMembers(prev => prev.map(m => ({ ...m, role: m.id === memberId ? 'member' : m.role })))
+      }
     } catch (err) {
       console.warn('Failed to update presiding officer', err)
+      // Revert optimistic update on error
+      setMembers(prev => prev.map(m => ({ ...m, role: m.id === memberId ? 'member' : m.role })))
     }
   }
 
@@ -359,10 +751,11 @@ function Meeting() {
   const presidingOfficer = members.find(m => m.role === 'chair')
   const onFloor = members.find(m => m.role === 'floor')
   const regularMembers = members.filter(m => m.role === 'member')
-  const safeCurrentMotion = currentMotion || { id: null, title: 'No current motion', description: '', status: 'completed', votes: { yes: 0, no: 0, abstain: 0 } }
+  const safeCurrentMotion = currentMotion || { id: null, title: 'No current motion', description: '', status: 'completed', votes: { yes: 0, no: 0, abstain: 0 }, discussion: [] }
   const safeCurrentUser = currentUser || { id: null, name: 'Guest', role: 'member', hasVoted: false, vote: null }
 
   if (!meetingLoaded) {
+    console.log('[Meeting] Rendering empty state - meetingLoaded is false')
     return (
       <>
         <Navigation />
@@ -380,75 +773,96 @@ function Meeting() {
     )
   }
 
+  console.log('[Meeting] Rendering meeting interface - meetingLoaded is true')
+
   return (
     <>
       <Navigation />
 
       <div className="meeting-dashboard">
         <div className="dashboard-header">
-          <h1>{committee?.name || 'Meeting'}</h1>
-          {meetingCode && (
-            <span className="meeting-code">Code: {meetingCode}
-              <button
-                type="button"
-                title="Copy meeting code"
-                aria-label="Copy meeting code"
-                className="copy-code-btn"
-                onClick={async () => {
-                  try {
-                    await navigator.clipboard.writeText(meetingCode)
-                    setCopied(true)
-                    setTimeout(() => setCopied(false), 2000)
-                  } catch (err) {
-                    // fallback
-                    const el = document.createElement('textarea')
-                    el.value = meetingCode
-                    document.body.appendChild(el)
-                    el.select()
-                    document.execCommand('copy')
-                    document.body.removeChild(el)
-                    setCopied(true)
-                    setTimeout(() => setCopied(false), 2000)
-                  }
-                }}
-              >Copy</button>
-              <button
-                type="button"
-                title="Share meeting code"
-                aria-label="Share meeting code"
-                className="share-code-btn"
-                onClick={async () => {
-                  try {
-                    const shareUrl = `${window.location.origin}/join?meetingCode=${encodeURIComponent(meetingCode)}`
-                    if (navigator.share) {
-                      await navigator.share({ title: 'Join my meeting', text: `Use this meeting code to join: ${meetingCode}`, url: shareUrl })
-                      setShared(true)
-                      setTimeout(() => setShared(false), 2000)
-                    } else {
-                      await navigator.clipboard.writeText(shareUrl)
-                      setShared(true)
-                      setTimeout(() => setShared(false), 2000)
-                    }
-                  } catch (err) {
-                    console.warn('Share failed', err)
-                    const shareUrl = `${window.location.origin}/join?meetingCode=${encodeURIComponent(meetingCode)}`
-                    try { await navigator.clipboard.writeText(shareUrl); setShared(true); setTimeout(() => setShared(false), 2000) } catch (e) { /* ignore */ }
-                  }
-                }}
-              >Share</button>
-              {copied && <span className="meeting-code-copied">Copied!</span>}
-              {shared && <span className="meeting-code-shared">Link copied!</span>}
-            </span>
-          )}
-          {safeCurrentUser.role === 'chair' && (
+          <div className="header-left">
+            <h1>{committee?.name || 'Meeting'}</h1>
+            {meetingCode && (
+              <div className="meeting-code-container">
+                <span className="code-label">Join Code</span>
+                <span className="code-value">{meetingCode}</span>
+                <div className="code-actions">
+                  <button
+                    type="button"
+                    title="Copy meeting code"
+                    aria-label="Copy meeting code"
+                    className="code-action-btn"
+                    onClick={async () => {
+                      try {
+                        await navigator.clipboard.writeText(meetingCode)
+                        setCopied(true)
+                        setTimeout(() => setCopied(false), 2000)
+                      } catch (err) {
+                        const el = document.createElement('textarea')
+                        el.value = meetingCode
+                        document.body.appendChild(el)
+                        el.select()
+                        document.execCommand('copy')
+                        document.body.removeChild(el)
+                        setCopied(true)
+                        setTimeout(() => setCopied(false), 2000)
+                      }
+                    }}
+                  >
+                    {copied ? '✓' : '📋'}
+                  </button>
+                  <button
+                    type="button"
+                    title="Share meeting link"
+                    aria-label="Share meeting link"
+                    className="code-action-btn"
+                    onClick={async () => {
+                      try {
+                        const shareUrl = `${window.location.origin}/join?meetingCode=${encodeURIComponent(meetingCode)}`
+                        if (navigator.share) {
+                          await navigator.share({ title: 'Join my meeting', text: `Use this meeting code to join: ${meetingCode}`, url: shareUrl })
+                          setShared(true)
+                          setTimeout(() => setShared(false), 2000)
+                        } else {
+                          await navigator.clipboard.writeText(shareUrl)
+                          setShared(true)
+                          setTimeout(() => setShared(false), 2000)
+                        }
+                      } catch (err) {
+                        const shareUrl = `${window.location.origin}/join?meetingCode=${encodeURIComponent(meetingCode)}`
+                        try { await navigator.clipboard.writeText(shareUrl); setShared(true); setTimeout(() => setShared(false), 2000) } catch (e) { /* ignore */ }
+                      }
+                    }}
+                  >
+                    {shared ? '✓' : '🔗'}
+                  </button>
+                </div>
+                {(copied || shared) && (
+                  <span className="code-toast">{copied ? 'Code copied!' : 'Link copied!'}</span>
+                )}
+              </div>
+            )}
+          </div>
+          <div className="header-actions">
+            {safeCurrentUser.role === 'chair' && (
+              <button 
+                className="chair-controls-btn"
+                onClick={() => setShowControlsModal(true)}
+                aria-label="Open chair controls"
+              >
+                <span className="btn-icon">⚙️</span>
+                <span>Chair Controls</span>
+              </button>
+            )}
             <button 
-              className="chair-controls-btn"
-              onClick={() => setShowControlsModal(true)}
+              className="leave-meeting-btn" 
+              onClick={() => setShowLeaveConfirm(true)}
+              aria-label="Leave meeting"
             >
-              Chair Controls
+              Leave
             </button>
-          )}
-          <button className="leave-meeting-btn" onClick={() => setShowLeaveConfirm(true)}>Leave Meeting</button>
+          </div>
         </div>
 
         <div className="dashboard-grid">
@@ -456,20 +870,79 @@ function Meeting() {
           <div className="card motion-card">
             <div className="card-header">
               <h2>Current Motion</h2>
-              <span className={`motion-status ${safeCurrentMotion.status}`}>
-                {safeCurrentMotion.status === 'voting' ? 'Voting Open' : 'Completed'}
-              </span>
+              {safeCurrentMotion.id && (
+                <span className={`motion-status ${safeCurrentMotion.status}`}>
+                  {safeCurrentMotion.status === 'voting' ? 'Voting Open' : 'Completed'}
+                </span>
+              )}
             </div>
-            <div className="motion-content">
-              <h3>{safeCurrentMotion.title}</h3>
-              <p>{safeCurrentMotion.description}</p>
-            </div>
-            <CurrentMotion
-              motion={safeCurrentMotion}
-              currentUser={safeCurrentUser}
-              onCastVote={castVote}
-              onChangeVote={changeVote}
-            />
+            {safeCurrentMotion.id ? (
+              <>
+                {/* Motion Type and Threshold Badges */}
+                <div className="motion-badges">
+                  <span className={`motion-type-badge ${safeCurrentMotion.type || 'main'}`}>
+                    {(safeCurrentMotion.type || 'main').charAt(0).toUpperCase() + (safeCurrentMotion.type || 'main').slice(1)} Motion
+                  </span>
+                  {safeCurrentMotion.isAnonymous && (
+                    <span className="anonymous-badge">🔒 Anonymous</span>
+                  )}
+                </div>
+
+                <div className="motion-content">
+                  <h3>{safeCurrentMotion.title}</h3>
+                  <p>{safeCurrentMotion.description}</p>
+                  
+                  {/* Voting Threshold Requirement */}
+                  <div className="voting-threshold-info">
+                    <span className="threshold-label">Required to Pass:</span>
+                    <span className="threshold-value">
+                      {safeCurrentMotion.votingThreshold === 'twoThirds' && '⅔ Supermajority (≥67%)'}
+                      {safeCurrentMotion.votingThreshold === 'unanimous' && 'Unanimous (100%)'}
+                      {(!safeCurrentMotion.votingThreshold || safeCurrentMotion.votingThreshold === 'simple') && 'Simple Majority (>50%)'}
+                    </span>
+                  </div>
+
+                  {/* Parent Motion Reference */}
+                  {safeCurrentMotion.parentMotionId && (
+                    <div className="parent-motion-ref">
+                      <span className="ref-label">
+                        {safeCurrentMotion.type === 'amendment' && '✏️ Amending:'}
+                        {safeCurrentMotion.type === 'overturn' && '↩️ Overturning:'}
+                      </span>
+                      <span className="ref-title">
+                        {motions.find(m => m.id === safeCurrentMotion.parentMotionId)?.title || 'Previous Motion'}
+                      </span>
+                    </div>
+                  )}
+                </div>
+                
+                <CurrentMotion
+                  motion={safeCurrentMotion}
+                  currentUser={safeCurrentUser}
+                  onCastVote={castVote}
+                  onChangeVote={changeVote}
+                />
+              </>
+            ) : (
+              <div className="motion-content empty-state">
+                <div className="empty-icon">📋</div>
+                <h3>No Active Motion</h3>
+                <p>
+                  {safeCurrentUser.role === 'chair' 
+                    ? 'Use Chair Controls to create a new motion for voting.'
+                    : 'Waiting for the chair to propose a motion.'
+                  }
+                </p>
+                {safeCurrentUser.role === 'chair' && (
+                  <button 
+                    className="create-motion-btn"
+                    onClick={() => setShowNewMotionModal(true)}
+                  >
+                    Create Motion
+                  </button>
+                )}
+              </div>
+            )}
           </div>
 
           {/* Members Card */}
@@ -507,6 +980,16 @@ function Meeting() {
             </div>
           </div>
 
+          {/* Discussion Panel Card */}
+          <div className="card discussion-card">
+            <DiscussionPanel
+              discussion={safeCurrentMotion.discussion || []}
+              onAddComment={addDiscussionComment}
+              currentUser={safeCurrentUser}
+              motionStatus={safeCurrentMotion.status}
+            />
+          </div>
+
           {/* Motion History Card */}
           {completedMotions.length > 0 && (
             <div className="card history-card">
@@ -539,6 +1022,17 @@ function Meeting() {
           onClose={() => setShowNewMotionModal(false)}
           onCreateMotion={createNewMotion}
           currentUser={safeCurrentUser}
+          motions={motions}
+        />
+      )}
+
+      {showEndVoteModal && (
+        <EndVoteModal
+          motion={safeCurrentMotion}
+          result={calculateVotingResult(safeCurrentMotion.votes, safeCurrentMotion.votingThreshold || 'simple')}
+          votes={safeCurrentMotion.votes}
+          onSubmit={handleEndVoteWithSummary}
+          onCancel={() => setShowEndVoteModal(false)}
         />
       )}
 

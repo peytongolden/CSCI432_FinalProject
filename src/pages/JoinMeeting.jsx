@@ -103,15 +103,30 @@ function JoinMeeting() {
     // Lookup meeting by code and attempt to join
     ;(async () => {
       try {
+        console.log('[JoinMeeting] Looking up meeting with code:', meetingCode);
         const lookup = await apiFetch(`/api/meetings/code/${encodeURIComponent(meetingCode)}`)
+        console.log('[JoinMeeting] Lookup response status:', lookup.status);
+        
+        const body = await lookup.json().catch((err) => {
+          console.error('[JoinMeeting] Failed to parse JSON response:', err);
+          return {};
+        })
+        
+        console.log('[JoinMeeting] Response body:', body);
+        
         if (!lookup.ok) {
-          const body = await lookup.json().catch(() => ({}))
           alert('Meeting not found or code invalid: ' + (body.message || lookup.statusText))
           return
         }
 
-        const { meeting } = await lookup.json()
-        if (!meeting) { alert('Meeting not found'); return }
+        const meeting = body.meeting
+        if (!meeting) { 
+          console.error('[JoinMeeting] No meeting in response body');
+          alert('Meeting not found'); 
+          return;
+        }
+        
+        console.log('[JoinMeeting] Meeting found:', meeting._id);
 
         // ensure the selected group (if any) is part of this meeting's committeeIds
         if (selectedGroup) {
@@ -145,13 +160,13 @@ function JoinMeeting() {
         body: JSON.stringify({ displayName })
       })
 
+      const joinData = await joinRes.json().catch(() => ({}))
+      
       if (!joinRes.ok) {
-        const jb = await joinRes.json().catch(() => ({}))
-        alert('Failed to join meeting: ' + (jb.message || joinRes.statusText))
+        alert('Failed to join meeting: ' + (joinData.message || joinRes.statusText))
         return
       }
 
-      const joinData = await joinRes.json()
       const participantId = joinData.participantId
       const meetingId = joinData.meetingId || meeting._id
 
@@ -160,7 +175,7 @@ function JoinMeeting() {
       else alert('Joined — but could not determine meeting location')
     } catch (err) {
       console.error('Join flow failed', err)
-      alert('Network error while joining meeting')
+      alert('Network error while joining meeting. Please try again.')
     }
   }
 

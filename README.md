@@ -1,64 +1,103 @@
 # Robert's Rules of Order Voting Application
 
-A modern React-based web application for conducting formal committee meetings following Robert's Rules of Order, with real-time voting capabilities.
+A modern full-stack web application for conducting formal committee meetings following Robert's Rules of Order, with real-time voting capabilities and comprehensive motion management.
 
-## Features
+## 🎯 Features
 
 ### Meeting Management
-- **Live Voting Sessions**: Conduct votes on motions with real-time updates
-- **Motion Creation**: Create and manage multiple motions during a session
-- **Motion History**: Track all completed motions with results
-- **Vote Tracking**: Monitor individual member votes in real-time
+- **Create & Join Meetings**: Generate unique meeting codes for participants to join
+- **Real-Time Updates**: 5-second polling keeps all participants synchronized
+- **Live Voting Sessions**: Conduct votes with instant updates across all devices
+- **Motion History**: Complete record of all motions with results and summaries
+- **Discussion Panel**: Pro/Con/Neutral comments on active motions
 
-### User Roles
-- **Presiding Officer (Chair)**: Controls meeting flow, creates motions, ends voting
-- **Floor Member**: Currently speaking/presenting
-- **Regular Members**: Vote on motions and participate in discussions
+### Motion Types & Voting
+- **Main Motions**: Standard decisions (simple majority >50%)
+- **Procedural Motions**: Rule changes (2/3 supermajority ≥67%)
+- **Amendments**: Modify existing motions
+- **Postpone Motions**: Delay decisions
+- **Special Motions**: Critical decisions (unanimous 100%)
+- **Overturn Previous Decisions**: Reverse past motions (2/3 supermajority)
 
 ### Voting Features
 - **Three Vote Options**: Yes, No, or Abstain
-- **Vote Changes**: Members can change their vote before voting closes
-- **Live Results**: Real-time vote counting and display
-- **Vote Confirmation**: Visual feedback when votes are cast
+- **Vote Changes**: Members can change votes before voting closes
+- **Anonymous Voting**: Optional privacy for sensitive topics
+- **Threshold-Based Results**: Automatic pass/fail calculation based on motion type
+- **Live Vote Tallies**: Real-time counting with visual indicators
+
+### User Roles
+- **Presiding Officer (Chair)**: Controls meeting flow, creates motions, ends voting, assigns roles
+- **Regular Members**: Vote on motions, participate in discussions
+- **Observer** (future): Read-only access
 
 ### Chair Controls
-- End voting sessions
-- Create new motions
-- View detailed results
-- Manage meeting flow
+- Create motions with type selection
+- End voting and record decision summaries
+- Document pros/cons for each decision
+- Assign presiding officer role to other members
+- View detailed vote results
 
-## Technology Stack
+## 🛠️ Technology Stack
 
+### Frontend
 - **React 19** - UI framework
-- **Vite** - Build tool and dev server
+- **Vite** - Build tool and dev server  
 - **React Router** - Client-side routing
-- **CSS3** - Styling with custom color palette
+- **CSS3** - Custom styling with earth-tone palette
 
-## Getting Started
+### Backend
+- **Netlify Functions** - Serverless backend (Node.js)
+- **MongoDB Atlas** - Database for meetings, motions, users
+- **JWT** - Authentication tokens
+
+## 📦 Getting Started
 
 ### Prerequisites
-- Node.js (v16 or higher)
+- Node.js (v18 or higher)
 - npm or yarn
+- MongoDB Atlas account (free tier)
+- Netlify CLI (for local development)
 
 ### Installation
 
-1. Clone the repository:
+1. **Clone the repository:**
 ```bash
 git clone <repository-url>
 cd CSCI432_FinalProject
 ```
 
-2. Install dependencies:
+2. **Install dependencies:**
 ```bash
 npm install
 ```
 
-3. Start the development server:
-```bash
-npm run dev
+3. **Set up environment variables:**
+
+Copy the template and add your credentials:
+```powershell
+# Windows (PowerShell)
+Copy-Item create-env.ps1.template create-env.ps1
+# Edit create-env.ps1 with your MongoDB URI and JWT secret
+.\create-env.ps1
 ```
 
-4. Open your browser to `http://localhost:3000`
+Or create `.env` file manually:
+```bash
+MONGODB_URI=your_mongodb_connection_string
+JWT_SECRET=your_jwt_secret
+```
+
+**For Team Members:** Contact your teammate for the actual MongoDB credentials.
+
+4. **Start the development server:**
+```bash
+npx netlify dev
+```
+
+5. **Open your browser to:** `http://localhost:8888`
+
+⚠️ **Important**: Use `http://localhost:8888` (Netlify Dev) NOT `http://localhost:5173` (Vite only)
 
 ### Building for Production
 
@@ -68,17 +107,103 @@ npm run build
 
 The production-ready files will be in the `dist/` directory.
 
-## Application Structure
+### Deploying to Netlify
+
+1. Push to the `netlifyTest` branch
+2. Netlify automatically deploys to: `https://csci432group.netlify.app/`
+3. Set environment variables in Netlify dashboard:
+   - `MONGODB_URI`
+   - `JWT_SECRET`
+
+## 📁 Project Structure
 
 ```
+├── netlify/
+│   └── functions/          # Serverless backend functions
+│       ├── motions.js      # Motion CRUD operations
+│       ├── meetings.js     # Meeting management
+│       ├── meetings-join.js
+│       ├── meetings-by-code.js
+│       └── committees.js
+├── src/
+│   ├── components/         # React components
+│   │   ├── EndVoteModal.jsx       # Chair summary capture
+│   │   ├── NewMotionModal.jsx     # Motion creation with types
+│   │   ├── ControlsModal.jsx      # Chair controls
+│   │   ├── DiscussionPanel.jsx    # Motion discussion
+│   │   ├── MotionHistory.jsx      # Completed motions
+│   │   └── ...
+│   ├── pages/              # Main page components
+│   │   ├── Meeting.jsx     # Core meeting interface
+│   │   ├── CreateMeeting.jsx
+│   │   ├── JoinMeeting.jsx
+│   │   └── Lobby.jsx
+│   ├── lib/                # Utilities
+│   │   └── api.js          # API fetch helper
+│   └── index.css           # Global styles
+├── netlify.toml            # Netlify configuration
+└── package.json
+```
 
-## Color Palette
+## 🎨 Color Palette
 
-The application uses an earth-tone color scheme:
-- **Dark Moss Green** (`#606c38`)
-- **Pakistan Green** (`#283618`)
-- **Cornsilk** (`#fefae0`)
-- **Earth Yellow** (`#dda15e`)
-- **Tiger's Eye** (`#bc6c25`)
+Earth-tone design system:
+- **Dark Moss Green** (`#606c38`) - Primary actions
+- **Pakistan Green** (`#283618`) - Headers, text
+- **Cornsilk** (`#fefae0`) - Backgrounds
+- **Earth Yellow** (`#dda15e`) - Accents
+- **Tiger's Eye** (`#bc6c25`) - Important actions
 
-Academic project for CSCI432 - Web Development
+Vote colors:
+- **Green** (`#4caf50`) - Yes votes
+- **Red** (`#f44336`) - No votes
+- **Orange** (`#ff9800`) - Abstain votes
+
+## 📚 Documentation
+
+- [API Documentation](./API_DOCUMENTATION.md) - Complete API reference
+- [Testing Setup](./TESTING_SETUP.md) - Local testing guide
+- [Changes Summary](./CHANGES_SUMMARY.md) - Implementation details
+
+## 🧪 Testing
+
+### Local Multi-User Testing
+
+**Option 1: Multiple Browser Windows**
+1. Open Chrome at `http://localhost:8888`
+2. Open Firefox (or Chrome Incognito) at `http://localhost:8888`
+3. Create meeting in Browser 1, join from Browser 2
+
+**Option 2: Multiple Devices**
+1. Find your local IP: `ipconfig` (Windows) or `ifconfig` (Mac/Linux)
+2. Computer: `http://localhost:8888`
+3. Phone/Tablet (same WiFi): `http://[YOUR-IP]:8888`
+
+## 🚀 Key Features Implemented
+
+### Robert's Rules Compliance
+- ✅ Motion types with proper voting thresholds
+- ✅ Chair summary and decision documentation
+- ✅ Presiding officer role management
+- ✅ Motion amendments and relationships
+- ✅ Overturn previous decisions (with restrictions)
+
+### Real-Time Functionality
+- ✅ Vote updates across all devices (5-second polling)
+- ✅ Motion creation synchronized instantly
+- ✅ Discussion comments appear for all users
+- ✅ Role changes reflect in real-time
+
+### Data Persistence
+- ✅ All motions saved to MongoDB
+- ✅ Vote records with participant details
+- ✅ Decision summaries with pros/cons
+- ✅ Complete meeting history
+
+## 👥 Team
+
+Academic project for **CSCI432 - Web Development**
+
+## 📝 License
+
+Academic use only.

@@ -44,6 +44,8 @@ export async function handler(event, context) {
     const pathParts = event.path.split('/');
     const code = pathParts[pathParts.length - 1];
 
+    console.log('[MEETINGS-BY-CODE] Looking up meeting with code:', code);
+
     if (!code) {
       return {
         statusCode: 400,
@@ -53,16 +55,25 @@ export async function handler(event, context) {
     }
 
     const db = await getDb();
-    const meeting = await db.collection('meetings').findOne({ code: code, active: true });
+    
+    // Make code lookup case-insensitive
+    const meeting = await db.collection('meetings').findOne({ 
+      code: { $regex: new RegExp(`^${code}$`, 'i') }, 
+      active: true 
+    });
+
+    console.log('[MEETINGS-BY-CODE] Meeting found:', !!meeting);
 
     if (!meeting) {
+      console.log('[MEETINGS-BY-CODE] No meeting found with code:', code);
       return {
         statusCode: 404,
         headers,
-        body: JSON.stringify({ success: false, message: 'Meeting not found' })
+        body: JSON.stringify({ success: false, message: 'Meeting not found or inactive' })
       };
     }
 
+    console.log('[MEETINGS-BY-CODE] Returning meeting:', meeting._id);
     return {
       statusCode: 200,
       headers,
