@@ -77,30 +77,34 @@
   gap: 10px;
 }
 
-.stat-label {
+.motion-info-box .stat-label {
   font-size: 15px;
   font-weight: 600;
-  color: var(--dark-moss-green);
+  color: var(--dark-moss-green) !important;
   min-width: 80px;
+  background: none !important;
+  text-shadow: none !important;
 }
 
-.stat-value {
+.motion-info-box .stat-value {
   font-size: 15px;
-  color: #555;
+  color: #555 !important;
+  background: none !important;
+  text-shadow: none !important;
 }
 
-.stat-value.result-passed {
-  color: #2e7d32;
+.motion-info-box .stat-value.result-passed {
+  color: #2e7d32 !important;
   font-weight: 700;
 }
 
-.stat-value.result-failed {
-  color: #c62828;
+.motion-info-box .stat-value.result-failed {
+  color: #c62828 !important;
   font-weight: 700;
 }
 
-.stat-value.result-tied {
-  color: #e65100;
+.motion-info-box .stat-value.result-tied {
+  color: #e65100 !important;
   font-weight: 700;
 }
 
