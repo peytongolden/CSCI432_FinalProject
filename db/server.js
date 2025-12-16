@@ -422,6 +422,27 @@ app.post('/api/meetings', authenticateToken, async (req, res) => {
     if (!name) return res.status(400).json({ success: false, message: 'Meeting name required' })
 
     try {
+        // Get creator's user info to add them as first participant
+        let creatorParticipant = null
+        let creatorParticipantId = null
+        if (req.userId) {
+            try {
+                const creator = await db.collection('users').findOne({ _id: new ObjectId(req.userId) })
+                if (creator) {
+                    creatorParticipantId = new ObjectId()
+                    creatorParticipant = {
+                        _id: creatorParticipantId,
+                        name: creator.name || 'Meeting Creator',
+                        joinedAt: new Date(),
+                        uid: req.userId,
+                        role: 'chair'
+                    }
+                }
+            } catch (e) {
+                console.warn('Could not fetch creator user info', e)
+            }
+        }
+
         const meeting = {
             name,
             description: description || '',
@@ -430,7 +451,9 @@ app.post('/api/meetings', authenticateToken, async (req, res) => {
             createdBy: req.userId || null,
             code: generateMeetingCode(),
             active: true,
-            participants: [],
+            participants: creatorParticipant ? [creatorParticipant] : [],
+            presidingParticipantId: creatorParticipantId ? creatorParticipantId.toString() : null,
+            motions: [],
             createdAt: new Date()
         }
 
@@ -449,7 +472,12 @@ app.post('/api/meetings', authenticateToken, async (req, res) => {
             }
         }
 
-        return res.status(201).json({ success: true, meetingId: result.insertedId, code: meeting.code })
+        return res.status(201).json({ 
+            success: true, 
+            meetingId: result.insertedId, 
+            code: meeting.code,
+            participantId: creatorParticipantId ? creatorParticipantId.toString() : null
+        })
     } catch (err) {
         console.error(err)
         return res.status(500).json({ success: false, message: 'Server error' })
@@ -509,6 +537,107 @@ app.post('/api/meetings/:id/join', async (req, res) => {
     }
 })
 
+// PATCH /api/meetings/:id - Update meeting (e.g., assign presiding officer)
+// Body: { presidingParticipantId?, active?, ... }
+app.patch('/api/meetings/:id', async (req, res) => {
+    try {
+        if (!ObjectId.isValid(req.params.id)) {
+            return res.status(400).json({ success: false, message: 'Invalid meeting id' })
+        }
+        const meetingId = new ObjectId(req.params.id)
+        const updates = req.body || {}
+
+        // Only allow certain fields to be updated
+        const allowedFields = ['presidingParticipantId', 'active', 'name', 'description']
+        const updateDoc = {}
+        for (const key of allowedFields) {
+            if (updates[key] !== undefined) {
+                updateDoc[key] = updates[key]
+            }
+        }
+
+        if (Object.keys(updateDoc).length === 0) {
+            return res.status(400).json({ success: false, message: 'No valid fields to update' })
+        }
+
+        // If changing presiding officer, also update participant roles
+        if (updates.presidingParticipantId !== undefined) {
+            const meeting = await db.collection('meetings').findOne({ _id: meetingId })
+            if (meeting && Array.isArray(meeting.participants)) {
+                // Update all participant roles: new chair gets 'chair', others get 'member'
+                const newParticipants = meeting.participants.map(p => {
+                    const participantId = String(p._id || p._id?.$oid)
+                    const isNewChair = participantId === String(updates.presidingParticipantId)
+                    return { ...p, role: isNewChair ? 'chair' : 'member' }
+                })
+                updateDoc.participants = newParticipants
+                console.log('[Meeting] Updated participant roles for new chair:', updates.presidingParticipantId)
+            }
+        }
+
+        const result = await db.collection('meetings').updateOne(
+            { _id: meetingId },
+            { $set: updateDoc }
+        )
+
+        if (result.matchedCount === 0) {
+            return res.status(404).json({ success: false, message: 'Meeting not found' })
+        }
+
+        return res.status(200).json({ success: true, message: 'Meeting updated' })
+    } catch (err) {
+        console.error(err)
+        return res.status(500).json({ success: false, message: 'Server error' })
+    }
+})
+
+// POST /api/meetings/:id/leave - Remove participant from meeting
+// Body: { participantId } or { uid }
+app.post('/api/meetings/:id/leave', async (req, res) => {
+    try {
+        if (!ObjectId.isValid(req.params.id)) {
+            return res.status(400).json({ success: false, message: 'Invalid meeting id' })
+        }
+        const meetingId = new ObjectId(req.params.id)
+        const { participantId, uid } = req.body || {}
+
+        if (!participantId && !uid) {
+            return res.status(400).json({ success: false, message: 'participantId or uid required' })
+        }
+
+        // Build pull filter that supports ObjectId _id or plain uid
+        const pullQuery = participantId && ObjectId.isValid(participantId)
+            ? { _id: new ObjectId(participantId) }
+            : (participantId ? { _id: participantId } : { uid })
+
+        const result = await db.collection('meetings').updateOne(
+            { _id: meetingId },
+            { $pull: { participants: pullQuery } }
+        )
+
+        if (result.modifiedCount === 0) {
+            return res.status(404).json({ success: false, message: 'Participant not found or already removed' })
+        }
+
+        // If the removed participant was presiding participant, clear it
+        const maybeFix = await db.collection('meetings').findOne({ _id: meetingId })
+        if (maybeFix && maybeFix.presidingParticipantId) {
+            const stillHasChair = Array.isArray(maybeFix.participants) && maybeFix.participants.some(p => 
+                String(p._id || p._id?.$oid) === String(maybeFix.presidingParticipantId) || 
+                String(p.uid) === String(maybeFix.presidingParticipantId)
+            )
+            if (!stillHasChair) {
+                await db.collection('meetings').updateOne({ _id: meetingId }, { $set: { presidingParticipantId: null } })
+            }
+        }
+
+        return res.status(200).json({ success: true })
+    } catch (err) {
+        console.error(err)
+        return res.status(500).json({ success: false, message: 'Server error' })
+    }
+})
+
 
 //delete committee, takes string version of ObjectId for parameter
 //also iterates through user information to delete their memberships
@@ -551,4 +680,284 @@ app.post('/api/committee/updatemotionhistory', authenticateToken, async (req, re
 
 })
 
-//TODO VetoMotion, Vote (anonymous?), Second, SecondMotion, 
+//TODO VetoMotion, Vote (anonymous?), Second, SecondMotion,
+
+// ----------------------------
+// Motions API endpoints
+// ----------------------------
+
+// POST /api/motions - Create new motion for a meeting
+// Body: { meetingId, title, description, type?, parentMotionId?, votingThreshold?, isAnonymous? }
+app.post('/api/motions', async (req, res) => {
+    const { meetingId, title, description, type, parentMotionId, votingThreshold, isAnonymous } = req.body || {};
+    
+    if (!meetingId) {
+        return res.status(400).json({ success: false, message: 'meetingId required' });
+    }
+    if (!title) {
+        return res.status(400).json({ success: false, message: 'title required' });
+    }
+    if (!ObjectId.isValid(meetingId)) {
+        return res.status(400).json({ success: false, message: 'Invalid meetingId' });
+    }
+
+    try {
+        // Determine motion type and voting requirements
+        const motionType = type || 'main';
+        
+        // Determine voting threshold based on type or explicit override
+        let threshold = votingThreshold;
+        if (!threshold) {
+            switch (motionType) {
+                case 'procedural':
+                case 'overturn':
+                    threshold = 'twoThirds';
+                    break;
+                case 'special':
+                    threshold = 'unanimous';
+                    break;
+                default:
+                    threshold = 'simple';
+            }
+        }
+
+        const motion = {
+            _id: new ObjectId(),
+            title,
+            description: description || '',
+            type: motionType,
+            parentMotionId: parentMotionId || null,
+            status: 'voting',
+            votes: { yes: [], no: [], abstain: [] },
+            discussion: [],
+            result: null,
+            chairSummary: '',
+            pros: [],
+            cons: [],
+            votingThreshold: threshold,
+            isAnonymous: isAnonymous || false,
+            createdAt: new Date(),
+            createdBy: null
+        };
+
+        // Set id string for frontend compatibility
+        motion.id = motion._id.toString();
+
+        // Get creator info from token if available
+        const authHeader = req.headers['authorization'] || req.headers['Authorization'];
+        if (authHeader) {
+            const parts = authHeader.split(' ');
+            const token = parts.length === 2 ? parts[1] : parts[0];
+            try {
+                const decoded = jwt.verify(token, process.env.JWT_SECRET);
+                motion.createdBy = decoded.id;
+            } catch (e) { /* no valid token, that's ok */ }
+        }
+
+        const result = await db.collection('meetings').updateOne(
+            { _id: new ObjectId(meetingId) },
+            { $push: { motions: motion } }
+        );
+
+        if (result.modifiedCount === 0) {
+            return res.status(404).json({ success: false, message: 'Meeting not found' });
+        }
+
+        return res.status(201).json({ success: true, motion });
+    } catch (err) {
+        console.error(err);
+        return res.status(500).json({ success: false, message: 'Server error' });
+    }
+});
+
+// GET /api/motions/:meetingId - Get all motions for a meeting
+app.get('/api/motions/:meetingId', async (req, res) => {
+    const meetingId = req.params.meetingId;
+    
+    if (!ObjectId.isValid(meetingId)) {
+        return res.status(400).json({ success: false, message: 'Invalid meetingId' });
+    }
+
+    try {
+        const meeting = await db.collection('meetings').findOne(
+            { _id: new ObjectId(meetingId) },
+            { projection: { motions: 1 } }
+        );
+
+        if (!meeting) {
+            return res.status(404).json({ success: false, message: 'Meeting not found' });
+        }
+
+        return res.status(200).json({ success: true, motions: meeting.motions || [] });
+    } catch (err) {
+        console.error(err);
+        return res.status(500).json({ success: false, message: 'Server error' });
+    }
+});
+
+// POST /api/motions/:motionId/vote - Cast or change vote
+// Body: { meetingId, participantId, participantName, vote: 'yes'|'no'|'abstain' }
+app.post('/api/motions/:motionId/vote', async (req, res) => {
+    const motionId = req.params.motionId;
+    const { meetingId, participantId, participantName, vote } = req.body || {};
+
+    if (!meetingId || !participantId || !vote) {
+        return res.status(400).json({ success: false, message: 'meetingId, participantId, and vote required' });
+    }
+
+    if (!['yes', 'no', 'abstain'].includes(vote)) {
+        return res.status(400).json({ success: false, message: 'vote must be yes, no, or abstain' });
+    }
+
+    try {
+        const meeting = await db.collection('meetings').findOne({ _id: new ObjectId(meetingId) });
+        if (!meeting) {
+            return res.status(404).json({ success: false, message: 'Meeting not found' });
+        }
+
+        const motionIndex = meeting.motions?.findIndex(m => 
+            String(m._id) === motionId || m.id === motionId
+        );
+
+        if (motionIndex === -1 || motionIndex === undefined) {
+            return res.status(404).json({ success: false, message: 'Motion not found' });
+        }
+
+        // Remove any existing votes from this participant
+        const motion = meeting.motions[motionIndex];
+        ['yes', 'no', 'abstain'].forEach(v => {
+            if (Array.isArray(motion.votes[v])) {
+                motion.votes[v] = motion.votes[v].filter(voteEntry => 
+                    String(voteEntry.participantId) !== String(participantId)
+                );
+            }
+        });
+
+        // Add the new vote
+        const voteEntry = {
+            participantId: String(participantId),
+            participantName: participantName || 'Anonymous',
+            timestamp: new Date()
+        };
+
+        if (!Array.isArray(motion.votes[vote])) {
+            motion.votes[vote] = [];
+        }
+        motion.votes[vote].push(voteEntry);
+
+        // Update the meeting with modified motion
+        const updateResult = await db.collection('meetings').updateOne(
+            { _id: new ObjectId(meetingId) },
+            { $set: { [`motions.${motionIndex}`]: motion } }
+        );
+
+        if (updateResult.modifiedCount === 0) {
+            return res.status(500).json({ success: false, message: 'Failed to record vote' });
+        }
+
+        return res.status(200).json({ success: true, message: 'Vote recorded' });
+    } catch (err) {
+        console.error(err);
+        return res.status(500).json({ success: false, message: 'Server error' });
+    }
+});
+
+// POST /api/motions/:motionId/discuss - Add discussion comment
+// Body: { meetingId, participantId, participantName, comment, stance?: 'pro'|'con'|'neutral' }
+app.post('/api/motions/:motionId/discuss', async (req, res) => {
+    const motionId = req.params.motionId;
+    const { meetingId, participantId, participantName, comment, stance } = req.body || {};
+
+    if (!meetingId || !participantId || !comment) {
+        return res.status(400).json({ success: false, message: 'meetingId, participantId, and comment required' });
+    }
+
+    try {
+        const discussionEntry = {
+            _id: new ObjectId(),
+            participantId,
+            participantName: participantName || 'Anonymous',
+            comment,
+            stance: stance || 'neutral',
+            timestamp: new Date()
+        };
+
+        const meeting = await db.collection('meetings').findOne({ _id: new ObjectId(meetingId) });
+        if (!meeting) {
+            return res.status(404).json({ success: false, message: 'Meeting not found' });
+        }
+
+        const motionIndex = meeting.motions?.findIndex(m => 
+            String(m._id) === motionId || m.id === motionId
+        );
+
+        if (motionIndex === -1 || motionIndex === undefined) {
+            return res.status(404).json({ success: false, message: 'Motion not found' });
+        }
+
+        const result = await db.collection('meetings').updateOne(
+            { _id: new ObjectId(meetingId) },
+            { $push: { [`motions.${motionIndex}.discussion`]: discussionEntry } }
+        );
+
+        if (result.modifiedCount === 0) {
+            return res.status(500).json({ success: false, message: 'Failed to add comment' });
+        }
+
+        return res.status(201).json({ success: true, discussionEntry });
+    } catch (err) {
+        console.error(err);
+        return res.status(500).json({ success: false, message: 'Server error' });
+    }
+});
+
+// PATCH /api/motions/:motionId - Update motion (end voting, add summary, etc.)
+// Body: { meetingId, status?, result?, chairSummary?, pros?, cons? }
+app.patch('/api/motions/:motionId', async (req, res) => {
+    const motionId = req.params.motionId;
+    const { meetingId, status, result, chairSummary, pros, cons } = req.body || {};
+
+    if (!meetingId) {
+        return res.status(400).json({ success: false, message: 'meetingId required' });
+    }
+
+    try {
+        const meeting = await db.collection('meetings').findOne({ _id: new ObjectId(meetingId) });
+        if (!meeting) {
+            return res.status(404).json({ success: false, message: 'Meeting not found' });
+        }
+
+        const motionIndex = meeting.motions?.findIndex(m => 
+            String(m._id) === motionId || m.id === motionId
+        );
+
+        if (motionIndex === -1 || motionIndex === undefined) {
+            return res.status(404).json({ success: false, message: 'Motion not found' });
+        }
+
+        const updateFields = {};
+        if (status) updateFields[`motions.${motionIndex}.status`] = status;
+        if (result) updateFields[`motions.${motionIndex}.result`] = result;
+        if (chairSummary !== undefined) updateFields[`motions.${motionIndex}.chairSummary`] = chairSummary;
+        if (pros !== undefined) updateFields[`motions.${motionIndex}.pros`] = Array.isArray(pros) ? pros : [];
+        if (cons !== undefined) updateFields[`motions.${motionIndex}.cons`] = Array.isArray(cons) ? cons : [];
+
+        if (Object.keys(updateFields).length === 0) {
+            return res.status(400).json({ success: false, message: 'No fields to update' });
+        }
+
+        const updateResult = await db.collection('meetings').updateOne(
+            { _id: new ObjectId(meetingId) },
+            { $set: updateFields }
+        );
+
+        if (updateResult.modifiedCount === 0) {
+            return res.status(500).json({ success: false, message: 'Failed to update motion' });
+        }
+
+        return res.status(200).json({ success: true, message: 'Motion updated' });
+    } catch (err) {
+        console.error(err);
+        return res.status(500).json({ success: false, message: 'Server error' });
+    }
+}); 

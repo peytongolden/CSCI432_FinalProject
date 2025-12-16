@@ -77,6 +77,11 @@
   color: white;
 }
 
+.motion-result.overturned {
+  background: linear-gradient(135deg, #7c4dff, #651fff);
+  color: white;
+}
+
 .history-badges {
   display: flex;
   gap: 8px;

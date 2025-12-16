@@ -524,10 +524,12 @@ function Meeting() {
     const votes = safeCurrentMotion.votes
     const votingThreshold = safeCurrentMotion.votingThreshold || 'simple'
     const result = calculateVotingResult(votes, votingThreshold)
+    const motionType = safeCurrentMotion.type || 'main'
+    const parentMotionId = safeCurrentMotion.parentMotionId
 
-    // Update local state
-    setMotions(prevMotions =>
-      prevMotions.map(motion =>
+    // Update local state - handle overturn motions specially
+    setMotions(prevMotions => {
+      let updatedMotions = prevMotions.map(motion =>
         motion.id === currentMotionId
           ? { 
               ...motion, 
@@ -539,7 +541,19 @@ function Meeting() {
             }
           : motion
       )
-    )
+      
+      // If this is an overturn motion that PASSED, update the parent motion to 'overturned'
+      if (motionType === 'overturn' && result === 'passed' && parentMotionId) {
+        updatedMotions = updatedMotions.map(motion =>
+          motion.id === parentMotionId
+            ? { ...motion, result: 'overturned', status: 'completed' }
+            : motion
+        )
+        console.log('[Meeting] Overturn motion passed - updating parent motion to overturned')
+      }
+      
+      return updatedMotions
+    })
     
     // Persist to backend
     if (meetingIdState && currentMotionId) {
@@ -559,6 +573,19 @@ function Meeting() {
           })
         })
         console.log('Voting ended with summary saved')
+        
+        // If overturn motion passed, also update the parent motion on backend
+        if (motionType === 'overturn' && result === 'passed' && parentMotionId) {
+          await apiFetch(`/api/motions/${encodeURIComponent(parentMotionId)}`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+            body: JSON.stringify({
+              meetingId: meetingIdState,
+              result: 'overturned'
+            })
+          })
+          console.log('Parent motion updated to overturned')
+        }
       } catch (err) {
         console.warn('Failed to end voting on backend', err)
       }
@@ -872,8 +899,18 @@ function Meeting() {
             <div className="card-header">
               <h2>Current Motion</h2>
               {safeCurrentMotion.id && (
-                <span className={`motion-status ${safeCurrentMotion.status}`}>
-                  {safeCurrentMotion.status === 'voting' ? 'Voting Open' : 'Completed'}
+                <span className={`motion-status ${safeCurrentMotion.status} ${safeCurrentMotion.result || ''}`}>
+                  {safeCurrentMotion.status === 'voting' 
+                    ? 'Voting Open' 
+                    : safeCurrentMotion.result === 'passed' 
+                      ? '✓ Passed'
+                      : safeCurrentMotion.result === 'failed'
+                        ? '✗ Failed'
+                        : safeCurrentMotion.result === 'tied'
+                          ? '⚖ Tied'
+                          : safeCurrentMotion.result === 'overturned'
+                            ? '↩ Overturned'
+                            : 'Completed'}
                 </span>
               )}
             </div>
@@ -988,6 +1025,7 @@ function Meeting() {
               onAddComment={addDiscussionComment}
               currentUser={safeCurrentUser}
               motionStatus={safeCurrentMotion.status}
+              hasActiveMotion={!!safeCurrentMotion.id}
             />
           </div>
 

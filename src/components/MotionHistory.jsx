@@ -15,8 +15,12 @@ function MotionHistory({ motions, onSelectMotion }) {
 
   const getMotionResult = (motion) => {
     if (motion.result) {
+      // Handle special results with proper formatting
+      const resultText = motion.result === 'overturned' 
+        ? '↩ Overturned'
+        : motion.result.charAt(0).toUpperCase() + motion.result.slice(1)
       return { 
-        text: motion.result.charAt(0).toUpperCase() + motion.result.slice(1), 
+        text: resultText, 
         className: motion.result 
       }
     }
