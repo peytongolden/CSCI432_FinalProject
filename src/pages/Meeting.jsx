@@ -469,7 +469,8 @@ function Meeting() {
             console.log('Motion persisted to backend:', backendMotion)
           }
         } else {
-          console.warn('Failed to persist motion to backend')
+          const errorText = await res.text().catch(() => 'No response body')
+          console.error('Failed to persist motion to backend - Status:', res.status, 'Error:', errorText)
         }
       } catch (err) {
         console.warn('Failed to create motion on backend', err)

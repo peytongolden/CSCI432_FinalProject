@@ -44,12 +44,16 @@ export async function handler(event, context) {
   }
 
   try {
+    console.log('[MOTIONS] Request:', event.httpMethod, event.path);
+    
     const db = await getDb();
+    console.log('[MOTIONS] Database connected successfully');
     
     // Parse path segments: /api/motions, /api/motions/:motionId, /api/motions/:motionId/vote, etc.
     const path = event.path.replace(/^\/.netlify\/functions\/motions/, '').replace(/^\/api\/motions/, '') || '/';
     const segments = path.split('/').filter(Boolean);
     const body = event.body ? JSON.parse(event.body) : {};
+    console.log('[MOTIONS] Path segments:', segments, 'Body meetingId:', body.meetingId);
 
     // POST /api/motions - Create new motion for a meeting
     // Body: { meetingId, title, description, type?, parentMotionId?, votingThreshold?, isAnonymous? }
