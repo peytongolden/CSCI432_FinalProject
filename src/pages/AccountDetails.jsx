@@ -127,7 +127,7 @@ function AccountDetails() {
 
 
     const temp = localStorage.getItem('userInfo')
-    delete temp._id
+    delete temp.id
 
     try {
       const res = await apiFetch(`/api/user/update/${email}`, {
