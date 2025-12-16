@@ -171,7 +171,7 @@ app.patch('/api/user/update/:id', authenticateToken, (req, res) => {
                 res.status(500).json({error:"Could not modify document"})
             } else { res.status(200).json(result) }
         })
-        .catch(err => res.status(500).json({error: "Server Error"}));
+        .catch(err => res.status(500).json({error: err}));
 })
 
 
