@@ -422,6 +422,27 @@ app.post('/api/meetings', authenticateToken, async (req, res) => {
     if (!name) return res.status(400).json({ success: false, message: 'Meeting name required' })
 
     try {
+        // Get creator's user info to add them as first participant
+        let creatorParticipant = null
+        let creatorParticipantId = null
+        if (req.userId) {
+            try {
+                const creator = await db.collection('users').findOne({ _id: new ObjectId(req.userId) })
+                if (creator) {
+                    creatorParticipantId = new ObjectId()
+                    creatorParticipant = {
+                        _id: creatorParticipantId,
+                        name: creator.name || 'Meeting Creator',
+                        joinedAt: new Date(),
+                        uid: req.userId,
+                        role: 'chair'
+                    }
+                }
+            } catch (e) {
+                console.warn('Could not fetch creator user info', e)
+            }
+        }
+
         const meeting = {
             name,
             description: description || '',
@@ -430,7 +451,9 @@ app.post('/api/meetings', authenticateToken, async (req, res) => {
             createdBy: req.userId || null,
             code: generateMeetingCode(),
             active: true,
-            participants: [],
+            participants: creatorParticipant ? [creatorParticipant] : [],
+            presidingParticipantId: creatorParticipantId ? creatorParticipantId.toString() : null,
+            motions: [],
             createdAt: new Date()
         }
 
@@ -449,7 +472,12 @@ app.post('/api/meetings', authenticateToken, async (req, res) => {
             }
         }
 
-        return res.status(201).json({ success: true, meetingId: result.insertedId, code: meeting.code })
+        return res.status(201).json({ 
+            success: true, 
+            meetingId: result.insertedId, 
+            code: meeting.code,
+            participantId: creatorParticipantId ? creatorParticipantId.toString() : null
+        })
     } catch (err) {
         console.error(err)
         return res.status(500).json({ success: false, message: 'Server error' })
