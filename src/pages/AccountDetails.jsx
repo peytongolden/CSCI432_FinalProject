@@ -122,6 +122,8 @@ function AccountDetails() {
     setErrors(next)
   }, [form.email, form.phone, editing])
 
+  //const updateInformation = 
+
   return (
     <>
       <Navigation />
@@ -159,11 +161,29 @@ function AccountDetails() {
                           setErrors(next)
                           if (Object.keys(next).length > 0) return
 
-                          const updated = { ...form, phone: formattedPhone }
-                          setUserInfo(updated)
-                          try { localStorage.setItem('userInfo', JSON.stringify(updated)) } catch (e) { console.error(e) }
-                          setForm(updated)
-                          setEditing(false)
+                          try {async () => {
+                            const emailTemp = JSON.parse(localStorage.getItem('userInfo'))['email']
+
+                            const updated = { ...form, phone: formattedPhone }
+                            setUserInfo(updated)
+                            try { localStorage.setItem('userInfo', JSON.stringify(updated)) } catch (e) { console.error(e) }
+
+                            const res = await apiFetch(`/api/user/update/${emailTemp}`, {
+                              method: 'PATCH',
+                              headers: {
+                                Authorization: `Bearer ${localStorage.getItem('token')}`,
+                                'Content-Type': 'application/json',
+                                Accept: 'application/json'
+                              },
+                              body: localStorage.getItem('userInfo')
+                            })
+                            const data = await res.json()
+
+                            setForm(updated)
+                            setEditing(false)
+                          }} catch {
+                            console.log("Error updating account information")
+                          }
                         }}
                       disabled={Object.keys(errors).length > 0}
                     >
