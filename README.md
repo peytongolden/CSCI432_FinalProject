@@ -2,6 +2,12 @@
 
 A modern full-stack web application for conducting formal committee meetings following Robert's Rules of Order, with real-time voting capabilities and comprehensive motion management.
 
+### LINK TO WEBSITE:
+https://csci432group.netlify.app/
+
+### VIDEO DEMO:
+To Be Added
+
 ## 🎯 Features
 
 ### Meeting Management
@@ -37,6 +43,31 @@ A modern full-stack web application for conducting formal committee meetings fol
 - Document pros/cons for each decision
 - Assign presiding officer role to other members
 - View detailed vote results
+
+## Website Walkthrough in Screenshots
+
+### Sign in Page
+(Login screenshot)
+
+### Home Page
+(Home page screenshot)
+
+### Account Details
+(Account Details page, with committee memberships populated)
+(Account Details with Edit Selected)
+
+### Create Meeting
+(Screenshot of create meeting page, with committee memberships and new meeting details populated)
+
+### Join Meeting
+(Screenshot of Join Meeting Page with committee memberships populated and meeting join information populated)
+
+### Meeting Page
+(Screenshot of meeting page from chair's perspective. Committee Members populated, Main motion in place, Vote tally shown, discussion populated, and Motion History exists with one or two completed motions)
+(Screenshot of chair controls)
+(Screenshot of end voting and record summaryt screen)
+### Help Pages
+(screeshot of the help pages, after they've been touched up)
 
 ## 🛠️ Technology Stack
 
@@ -164,6 +195,7 @@ Vote colors:
 - [API Documentation](./API_DOCUMENTATION.md) - Complete API reference
 - [Testing Setup](./TESTING_SETUP.md) - Local testing guide
 - [Changes Summary](./CHANGES_SUMMARY.md) - Implementation details
+- Database Collections TBA
 
 ## 🧪 Testing
 
