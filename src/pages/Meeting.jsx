@@ -651,22 +651,32 @@ function Meeting() {
 
   // Add discussion comment
   const addDiscussionComment = async (comment, stance) => {
-    if (!meetingIdState || !currentMotionId || !comment.trim()) return
+    if (!meetingIdState || !currentMotionId || !comment.trim()) {
+      console.warn('[Meeting] Cannot add comment:', { meetingIdState, currentMotionId, comment: !!comment })
+      return
+    }
+    
+    if (!safeCurrentUser || !safeCurrentUser.id) {
+      console.warn('[Meeting] Cannot add comment - no valid user')
+      return
+    }
 
     // Optimistically add to local state
     const newComment = {
       _id: 'temp_' + Date.now(),
-      participantId: safeCurrentUser.id,
-      participantName: safeCurrentUser.name,
+      participantId: safeCurrentUser.id || 'anonymous',
+      participantName: safeCurrentUser.name || 'Anonymous',
       comment: comment.trim(),
       stance: stance || 'neutral',
       timestamp: new Date().toISOString()
     }
 
+    console.log('[Meeting] Adding discussion comment:', newComment)
+
     setMotions(prevMotions =>
       prevMotions.map(motion =>
         motion.id === currentMotionId
-          ? { ...motion, discussion: [...(motion.discussion || []), newComment] }
+          ? { ...motion, discussion: [...(Array.isArray(motion.discussion) ? motion.discussion : []), newComment] }
           : motion
       )
     )
@@ -686,11 +696,13 @@ function Meeting() {
           stance: stance || 'neutral'
         })
       })
-      if (!res.ok) {
-        console.warn('Failed to persist discussion comment')
+      if (res.ok) {
+        console.log('[Meeting] Discussion comment persisted successfully')
+      } else {
+        console.warn('[Meeting] Failed to persist discussion comment - Status:', res.status)
       }
     } catch (err) {
-      console.warn('Failed to add discussion comment', err)
+      console.warn('[Meeting] Failed to add discussion comment:', err)
     }
   }
 
@@ -779,8 +791,13 @@ function Meeting() {
   const presidingOfficer = members.find(m => m.role === 'chair')
   const onFloor = members.find(m => m.role === 'floor')
   const regularMembers = members.filter(m => m.role === 'member')
-  const safeCurrentMotion = currentMotion || { id: null, title: 'No current motion', description: '', status: 'completed', votes: { yes: 0, no: 0, abstain: 0 }, discussion: [] }
-  const safeCurrentUser = currentUser || { id: null, name: 'Guest', role: 'member', hasVoted: false, vote: null }
+  
+  // Ensure safe defaults with proper array initialization
+  const safeCurrentMotion = currentMotion 
+    ? { ...currentMotion, discussion: Array.isArray(currentMotion.discussion) ? currentMotion.discussion : [] }
+    : { id: null, title: 'No current motion', description: '', status: 'completed', votes: { yes: 0, no: 0, abstain: 0 }, discussion: [] }
+  
+  const safeCurrentUser = currentUser || { id: 'guest_' + Date.now(), name: 'Guest', role: 'member', hasVoted: false, vote: null }
 
   if (!meetingLoaded) {
     console.log('[Meeting] Rendering empty state - meetingLoaded is false')

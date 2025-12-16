@@ -5,6 +5,9 @@ function DiscussionPanel({ discussion, onAddComment, currentUser, motionStatus, 
   const [comment, setComment] = useState('')
   const [stance, setStance] = useState('neutral')
 
+  // Safely handle discussion array - ensure it's always an array
+  const safeDiscussion = Array.isArray(discussion) ? discussion : []
+  
   // Allow discussion when there's an active motion (voting or completed) - always allow comments
   // Only close if explicitly needed (e.g., meeting ended)
   const canComment = hasActiveMotion
@@ -12,6 +15,10 @@ function DiscussionPanel({ discussion, onAddComment, currentUser, motionStatus, 
   const handleSubmit = (e) => {
     e.preventDefault()
     if (!comment.trim()) return
+    if (!currentUser || !currentUser.id) {
+      console.warn('[Discussion] Cannot submit comment - user not identified')
+      return
+    }
 
     onAddComment(comment.trim(), stance)
     setComment('')
@@ -40,10 +47,10 @@ function DiscussionPanel({ discussion, onAddComment, currentUser, motionStatus, 
     return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
   }
 
-  // Group comments by stance for summary
-  const proComments = discussion.filter(d => d.stance === 'pro')
-  const conComments = discussion.filter(d => d.stance === 'con')
-  const neutralComments = discussion.filter(d => d.stance === 'neutral' || !d.stance)
+  // Group comments by stance for summary - use safe discussion array
+  const proComments = safeDiscussion.filter(d => d && d.stance === 'pro')
+  const conComments = safeDiscussion.filter(d => d && d.stance === 'con')
+  const neutralComments = safeDiscussion.filter(d => d && (d.stance === 'neutral' || !d.stance))
 
   return (
     <div className="discussion-panel">
@@ -63,23 +70,27 @@ function DiscussionPanel({ discussion, onAddComment, currentUser, motionStatus, 
           <div className="no-discussion">
             No motion is currently active. Create a new motion to start the discussion.
           </div>
-        ) : discussion.length === 0 ? (
+        ) : safeDiscussion.length === 0 ? (
           <div className="no-discussion">
             No comments yet. Be the first to share your thoughts!
           </div>
         ) : (
-          discussion.map((item, idx) => (
-            <div key={item._id || idx} className={`discussion-item ${getStanceClass(item.stance)}`}>
-              <div className="discussion-item-header">
-                <span className="stance-icon">{getStanceIcon(item.stance)}</span>
-                <span className="participant-name">{item.participantName || 'Anonymous'}</span>
-                <span className="timestamp">{formatTime(item.timestamp)}</span>
+          safeDiscussion.map((item, idx) => {
+            // Safely handle potentially malformed discussion items
+            if (!item) return null
+            return (
+              <div key={item._id || idx} className={`discussion-item ${getStanceClass(item.stance)}`}>
+                <div className="discussion-item-header">
+                  <span className="stance-icon">{getStanceIcon(item.stance)}</span>
+                  <span className="participant-name">{item.participantName || 'Anonymous'}</span>
+                  <span className="timestamp">{formatTime(item.timestamp)}</span>
+                </div>
+                <div className="discussion-item-content">
+                  {item.comment || ''}
+                </div>
               </div>
-              <div className="discussion-item-content">
-                {item.comment}
-              </div>
-            </div>
-          ))
+            )
+          })
         )}
       </div>
 
