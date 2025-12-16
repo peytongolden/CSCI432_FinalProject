@@ -6,7 +6,7 @@ A modern full-stack web application for conducting formal committee meetings fol
 https://csci432group.netlify.app/
 
 ### VIDEO DEMO:
-To Be Added
+[To Be Added](https://youtu.be/-pXhOnbP_fE)
 
 ## 🎯 Features
 
