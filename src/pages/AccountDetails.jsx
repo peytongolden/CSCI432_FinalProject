@@ -181,8 +181,8 @@ function AccountDetails() {
 
                             setForm(updated)
                             setEditing(false)
-                          }} catch {
-                            console.log("Error updating account information")
+                          }} catch(e) {
+                            console.log(e)
                           }
                         }}
                       disabled={Object.keys(errors).length > 0}
