@@ -26,7 +26,7 @@ function Navigation() {
       if (destination === '/login') {
         try { localStorage.removeItem('token'); localStorage.removeItem('userInfo') } catch (err) {}
       }
-
+      
       setConfirmOpen(true)
     }
   }
