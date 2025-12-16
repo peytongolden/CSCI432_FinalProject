@@ -85,7 +85,8 @@ function JoinMeeting() {
   useEffect(() => {
     try {
       const params = new URLSearchParams(window.location.search)
-      const qcode = params.get('meetingCode')
+      // Support both 'code' and 'meetingCode' parameters for compatibility
+      const qcode = params.get('code') || params.get('meetingCode')
       if (qcode) {
         const el = document.getElementById('meetingCode')
         if (el) el.value = qcode

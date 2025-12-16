@@ -135,6 +135,41 @@ export async function handler(event, context) {
       };
     }
 
+    // GET - Get a specific meeting by ID or list all meetings
+    if (event.httpMethod === 'GET') {
+      // Check if we have a meeting ID in the path
+      const pathParts = event.path.split('/');
+      const lastSegment = pathParts[pathParts.length - 1];
+      
+      // If the last segment is a valid ObjectId, get that specific meeting
+      if (lastSegment && lastSegment !== 'meetings' && ObjectId.isValid(lastSegment)) {
+        const meetingId = lastSegment;
+        const meeting = await db.collection('meetings').findOne({ _id: new ObjectId(meetingId) });
+
+        if (!meeting) {
+          return {
+            statusCode: 404,
+            headers,
+            body: JSON.stringify({ success: false, message: 'Meeting not found' })
+          };
+        }
+
+        return {
+          statusCode: 200,
+          headers,
+          body: JSON.stringify({ success: true, meeting })
+        };
+      }
+
+      // Otherwise, list all active meetings
+      const meetings = await db.collection('meetings').find({ active: true }).toArray();
+      return {
+        statusCode: 200,
+        headers,
+        body: JSON.stringify({ success: true, meetings })
+      };
+    }
+
     // PATCH - Update meeting metadata (e.g., presiding chair)
     if (event.httpMethod === 'PATCH') {
       try {
@@ -163,16 +198,6 @@ export async function handler(event, context) {
         console.error('PATCH MEETING failed', err)
         return { statusCode: 500, headers, body: JSON.stringify({ success: false, message: 'Server error' }) }
       }
-    }
-
-    // GET - List meetings (optional, for future use)
-    if (event.httpMethod === 'GET') {
-      const meetings = await db.collection('meetings').find({ active: true }).toArray();
-      return {
-        statusCode: 200,
-        headers,
-        body: JSON.stringify({ success: true, meetings })
-      };
     }
 
     return {
