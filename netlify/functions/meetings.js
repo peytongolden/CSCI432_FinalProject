@@ -46,7 +46,7 @@ export async function handler(event, context) {
   const headers = {
     'Access-Control-Allow-Origin': '*',
     'Access-Control-Allow-Headers': 'Content-Type, Authorization',
-    'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+    'Access-Control-Allow-Methods': 'GET, POST, PATCH, OPTIONS',
     'Content-Type': 'application/json'
   };
 
