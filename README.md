@@ -60,7 +60,7 @@ https://csci432group.netlify.app/
 ![alt text](https://github.com/peytongolden/CSCI432_FinalProject/blob/netlifyTest/readme_pics/ronrNewMeeting.png "Create Meeting Page")
 
 ### Join Meeting
-![alt text]( "")
+![alt text](https://github.com/peytongolden/CSCI432_FinalProject/blob/netlifyTest/readme_pics/ronrJoinMeeting.png "Join Meeting Page")
 (Screenshot of Join Meeting Page with committee memberships populated and meeting join information populated)
 
 ### Meeting Page
