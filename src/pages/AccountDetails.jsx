@@ -128,12 +128,12 @@ function AccountDetails() {
     const temp = localStorage.getItem('userInfo')
     
     const upload = {
-      name: temp.name,
-      email: temp.email,
-      committee_memberships: temp.committee_memberships,
-      phone_number: temp.phone_number,
-      short_bio: temp.short_bio,
-      address: temp.address
+      "name": temp.name,
+      "email": temp.email,
+      "committee_memberships": temp.committee_memberships,
+      "phone_number": temp.phone_number,
+      "short_bio": temp.short_bio,
+      "address": temp.address
     }
 
     try {
