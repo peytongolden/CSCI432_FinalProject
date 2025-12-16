@@ -22,12 +22,11 @@ function Navigation() {
       const committeeName = sessionStorage.getItem('committeeName') || ''
       setPendingCommitteeName(committeeName)
       setPendingDestination(destination)
-
-      if (destination === '/login') {
-        try { localStorage.removeItem('token'); localStorage.removeItem('userInfo') } catch (err) {}
-      }
-      
       setConfirmOpen(true)
+    }
+
+    if (destination === '/login') {
+      try { localStorage.removeItem('token'); localStorage.removeItem('userInfo') } catch (err) {}
     }
   }
 
