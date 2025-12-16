@@ -22,8 +22,8 @@ function AccountDetails() {
       email: '',
       role: '',
       joinDate: '',
-      phone: '',
-      bio: '',
+      phone_number: '',
+      short_bio: '',
       avatar: '' // base64 data URL or remote URL
     }
   })
@@ -45,8 +45,8 @@ function AccountDetails() {
         })
         const data = await res.json()
         if (res.ok && data.success && data.user) {
-          setUserInfo(data.user)
-          setForm(data.user)
+          setUserInfo(JSON.stringify(data.user))
+          setForm(JSON.stringify(data.user))
           try { localStorage.setItem('userInfo', JSON.stringify(data.user)) } catch (e) { console.error(e) }
           
           // Load user's committees
@@ -117,10 +117,10 @@ function AccountDetails() {
     const next = {}
     const emailErr = validateEmail(form.email)
     if (emailErr) next.email = emailErr
-    const phoneErr = validatePhone(form.phone)
-    if (phoneErr) next.phone = phoneErr
+    const phoneErr = validatePhone(form.phone_number)
+    if (phoneErr) next.phone_number = phoneErr
     setErrors(next)
-  }, [form.email, form.phone, editing])
+  }, [form.email, form.phone_number, editing])
 
   // Databse call to update user account information
   const updateUserInfo = async (email) => {
@@ -168,18 +168,18 @@ function AccountDetails() {
                       className="primary"
                       onClick={() => {
                           // Ensure phone is formatted before validating/saving
-                          const formattedPhone = formatPhone(form.phone)
+                          const formattedPhone = formatPhone(form.phone_number)
                           const emailErr = validateEmail(form.email)
                           const phoneErr = validatePhone(formattedPhone)
                           const next = {}
                           if (emailErr) next.email = emailErr
-                          if (phoneErr) next.phone = phoneErr
+                          if (phoneErr) next.phone_number = phoneErr
                           setErrors(next)
                           if (Object.keys(next).length > 0) return
 
                           const emailTemp = JSON.parse(localStorage.getItem('userInfo'))['email']
 
-                          const updated = { ...form, phone: formattedPhone }
+                          const updated = { ...form, phone_number: formattedPhone }
                           setUserInfo(updated)
                           try { localStorage.setItem('userInfo', JSON.stringify(updated)) } catch (e) { console.error(e) }
 
@@ -225,24 +225,24 @@ function AccountDetails() {
                 <>
                   <input
                     type="tel"
-                    value={form.phone || ''}
-                    onChange={(e) => setForm(prev => ({ ...prev, phone: e.target.value }))}
-                    onBlur={() => setForm(prev => ({ ...prev, phone: formatPhone(prev.phone) }))}
+                    value={form.phone_number || ''}
+                    onChange={(e) => setForm(prev => ({ ...prev, phone_number: e.target.value }))}
+                    onBlur={() => setForm(prev => ({ ...prev, phone_number: formatPhone(prev.phone_number) }))}
                     placeholder="(555) 555-5555"
                   />
-                  {errors.phone && <div className="field-error">{errors.phone}</div>}
+                  {errors.phone_number && <div className="field-error">{errors.phone_number}</div>}
                 </>
               ) : (
-                <p>{userInfo.phone || '—'}</p>
+                <p>{userInfo.phone_number || '—'}</p>
               )}
             </div>
 
             <div className="info-row">
               <label>Bio:</label>
               {editing ? (
-                <textarea value={form.bio || ''} onChange={(e) => setForm(prev => ({ ...prev, bio: e.target.value }))} rows={4} />
+                <textarea value={form.short_bio || ''} onChange={(e) => setForm(prev => ({ ...prev, short_bio: e.target.value }))} rows={4} />
               ) : (
-                <p style={{ whiteSpace: 'pre-wrap' }}>{userInfo.bio || '—'}</p>
+                <p style={{ whiteSpace: 'pre-wrap' }}>{userInfo.short_bio || '—'}</p>
               )}
             </div>
 
