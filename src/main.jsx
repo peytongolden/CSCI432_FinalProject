@@ -6,6 +6,14 @@ import ReactDOM from 'react-dom/client'
 import App from './App'
 import './index.css'
 
+// Version identifier for deployment verification
+const APP_VERSION = 'v2.0-motions-api-complete'
+const DEPLOY_DATE = '2025-12-16T17:30:00Z'
+console.log('%c🚀 CSCI432 Final Project', 'color: #4CAF50; font-size: 20px; font-weight: bold;')
+console.log(`%cVersion: ${APP_VERSION}`, 'color: #2196F3; font-size: 14px;')
+console.log(`%cDeployed: ${DEPLOY_DATE}`, 'color: #2196F3; font-size: 14px;')
+console.log('%cAll meeting APIs (motions, voting, discussion) included ✅', 'color: #4CAF50; font-size: 12px;')
+
 function renderApp() {
   try {
     ReactDOM.createRoot(document.getElementById('root')).render(
