@@ -7,12 +7,12 @@ import App from './App'
 import './index.css'
 
 // Version identifier for deployment verification
-const APP_VERSION = 'v2.2.1-discussion-sync-fix'
-const DEPLOY_DATE = '2025-12-16T18:30:00Z'
+const APP_VERSION = 'v2.3-always-open-discussion'
+const DEPLOY_DATE = '2025-12-16T19:00:00Z'
 console.log('%c🚀 CSCI432 Final Project', 'color: #4CAF50; font-size: 20px; font-weight: bold;')
 console.log(`%cVersion: ${APP_VERSION}`, 'color: #2196F3; font-size: 14px;')
 console.log(`%cDeployed: ${DEPLOY_DATE}`, 'color: #2196F3; font-size: 14px;')
-console.log('%c✅ Discussion sync fix for guests | ✅ Better error handling | ✅ All UX improvements', 'color: #4CAF50; font-size: 11px;')
+console.log('%c✅ Always-open discussion | ✅ General + Motion chat with delimiters | ✅ Full UX improvements', 'color: #4CAF50; font-size: 11px;')
 
 function renderApp() {
   try {

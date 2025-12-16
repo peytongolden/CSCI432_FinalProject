@@ -22,6 +22,7 @@ function Meeting() {
   const [motions, setMotions] = useState([])
   const [currentMotionId, setCurrentMotionId] = useState(null)
   const currentMotion = motions.find(m => m.id === currentMotionId) || null
+  const [generalDiscussion, setGeneralDiscussion] = useState([])
 
   const [currentUser, setCurrentUser] = useState(null)
 
@@ -257,6 +258,11 @@ function Meeting() {
             }
             return updatedMotions
           })
+        }
+
+        // Update general discussion
+        if (Array.isArray(meet.generalDiscussion)) {
+          setGeneralDiscussion(meet.generalDiscussion)
         }
 
         // Update participants and their vote displays
@@ -650,9 +656,15 @@ function Meeting() {
   }
 
   // Add discussion comment
-  const addDiscussionComment = async (comment, stance) => {
-    if (!meetingIdState || !currentMotionId || !comment.trim()) {
-      console.warn('[Meeting] Cannot add comment:', { meetingIdState, currentMotionId, comment: !!comment })
+  const addDiscussionComment = async (comment, stance, isGeneral = false) => {
+    if (!meetingIdState || !comment.trim()) {
+      console.warn('[Meeting] Cannot add comment:', { meetingIdState, comment: !!comment })
+      return
+    }
+    
+    // For motion-specific comments, we need a current motion
+    if (!isGeneral && !currentMotionId) {
+      console.warn('[Meeting] Cannot add motion comment without currentMotionId')
       return
     }
     
@@ -667,39 +679,65 @@ function Meeting() {
       participantId: safeCurrentUser.id || 'anonymous',
       participantName: safeCurrentUser.name || 'Anonymous',
       comment: comment.trim(),
-      stance: stance || 'neutral',
+      stance: isGeneral ? undefined : (stance || 'neutral'),
       timestamp: new Date().toISOString()
     }
 
-    console.log('[Meeting] Adding discussion comment:', newComment)
+    console.log('[Meeting] Adding discussion comment:', { isGeneral, comment: newComment })
 
-    setMotions(prevMotions =>
-      prevMotions.map(motion =>
-        motion.id === currentMotionId
-          ? { ...motion, discussion: [...(Array.isArray(motion.discussion) ? motion.discussion : []), newComment] }
-          : motion
+    if (isGeneral) {
+      // Add to general discussion
+      setGeneralDiscussion(prev => [...prev, newComment])
+    } else {
+      // Add to motion discussion
+      setMotions(prevMotions =>
+        prevMotions.map(motion =>
+          motion.id === currentMotionId
+            ? { ...motion, discussion: [...(Array.isArray(motion.discussion) ? motion.discussion : []), newComment] }
+            : motion
+        )
       )
-    )
+    }
 
     // Persist to backend
     try {
       const token = localStorage.getItem('token')
-      const motionId = String(currentMotionId)
-      const res = await apiFetch(`/api/motions/${encodeURIComponent(motionId)}/discuss`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
-        body: JSON.stringify({
-          meetingId: meetingIdState,
-          participantId: safeCurrentUser.id,
-          participantName: safeCurrentUser.name,
-          comment: comment.trim(),
-          stance: stance || 'neutral'
+      
+      if (isGeneral) {
+        // Post to general meeting discussion endpoint
+        const res = await apiFetch(`/api/meetings/${encodeURIComponent(meetingIdState)}/discuss`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+          body: JSON.stringify({
+            participantId: safeCurrentUser.id,
+            participantName: safeCurrentUser.name,
+            comment: comment.trim()
+          })
         })
-      })
-      if (res.ok) {
-        console.log('[Meeting] Discussion comment persisted successfully')
+        if (res.ok) {
+          console.log('[Meeting] General discussion comment persisted successfully')
+        } else {
+          console.warn('[Meeting] Failed to persist general discussion comment - Status:', res.status)
+        }
       } else {
-        console.warn('[Meeting] Failed to persist discussion comment - Status:', res.status)
+        // Post to motion discussion endpoint
+        const motionId = String(currentMotionId)
+        const res = await apiFetch(`/api/motions/${encodeURIComponent(motionId)}/discuss`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+          body: JSON.stringify({
+            meetingId: meetingIdState,
+            participantId: safeCurrentUser.id,
+            participantName: safeCurrentUser.name,
+            comment: comment.trim(),
+            stance: stance || 'neutral'
+          })
+        })
+        if (res.ok) {
+          console.log('[Meeting] Motion discussion comment persisted successfully')
+        } else {
+          console.warn('[Meeting] Failed to persist motion discussion comment - Status:', res.status)
+        }
       }
     } catch (err) {
       console.warn('[Meeting] Failed to add discussion comment:', err)
@@ -1038,7 +1076,9 @@ function Meeting() {
           {/* Discussion Panel Card */}
           <div className="card discussion-card">
             <DiscussionPanel
-              discussion={safeCurrentMotion.discussion || []}
+              generalDiscussion={generalDiscussion}
+              motionDiscussion={safeCurrentMotion.discussion || []}
+              motionTitle={safeCurrentMotion.title}
               onAddComment={addDiscussionComment}
               currentUser={safeCurrentUser}
               motionStatus={safeCurrentMotion.status}

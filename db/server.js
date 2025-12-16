@@ -454,6 +454,7 @@ app.post('/api/meetings', authenticateToken, async (req, res) => {
             participants: creatorParticipant ? [creatorParticipant] : [],
             presidingParticipantId: creatorParticipantId ? creatorParticipantId.toString() : null,
             motions: [],
+            generalDiscussion: [],
             createdAt: new Date()
         }
 
@@ -907,6 +908,41 @@ app.post('/api/motions/:motionId/discuss', async (req, res) => {
         return res.status(201).json({ success: true, discussionEntry });
     } catch (err) {
         console.error(err);
+        return res.status(500).json({ success: false, message: 'Server error' });
+    }
+});
+
+// POST /api/meetings/:meetingId/discuss - Add general discussion comment (not tied to any motion)
+// Body: { participantId, participantName, comment }
+app.post('/api/meetings/:meetingId/discuss', async (req, res) => {
+    const { meetingId } = req.params;
+    const { participantId, participantName, comment } = req.body || {};
+
+    if (!participantId || !comment) {
+        return res.status(400).json({ success: false, message: 'participantId and comment required' });
+    }
+
+    try {
+        const discussionEntry = {
+            _id: new ObjectId(),
+            participantId,
+            participantName: participantName || 'Anonymous',
+            comment,
+            timestamp: new Date()
+        };
+
+        const result = await db.collection('meetings').updateOne(
+            { _id: new ObjectId(meetingId) },
+            { $push: { generalDiscussion: discussionEntry } }
+        );
+
+        if (result.modifiedCount === 0) {
+            return res.status(404).json({ success: false, message: 'Meeting not found or failed to add comment' });
+        }
+
+        return res.status(201).json({ success: true, discussionEntry });
+    } catch (err) {
+        console.error('Error adding general discussion:', err);
         return res.status(500).json({ success: false, message: 'Server error' });
     }
 });
