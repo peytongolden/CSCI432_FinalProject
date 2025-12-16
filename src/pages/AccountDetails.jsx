@@ -122,7 +122,23 @@ function AccountDetails() {
     setErrors(next)
   }, [form.email, form.phone, editing])
 
-  //const updateInformation = 
+  // Databse call to update user account information
+  const updateUserInfo = async (email) => {
+    try {
+      const res = await apiFetch(`/api/user/update/${emailTemp}`, {
+        method: 'PATCH',
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem('token')}`,
+          'Content-Type': 'application/json',
+          Accept: 'application/json'
+        },
+        body: localStorage.getItem('userInfo')
+        })
+      const data = await res.json()
+    } catch(e) {
+      console.log(e)
+    }
+  }
 
   return (
     <>
@@ -167,22 +183,7 @@ function AccountDetails() {
                           setUserInfo(updated)
                           try { localStorage.setItem('userInfo', JSON.stringify(updated)) } catch (e) { console.error(e) }
 
-                          try {async (emailTemp) => {
-
-                            const res = await apiFetch(`/api/user/update/${emailTemp}`, {
-                              method: 'PATCH',
-                              headers: {
-                                Authorization: `Bearer ${localStorage.getItem('token')}`,
-                                'Content-Type': 'application/json',
-                                Accept: 'application/json'
-                              },
-                              body: localStorage.getItem('userInfo')
-                            })
-                            const data = await res.json()
-
-                          }} catch(e) {
-                            console.log(e)
-                          }
+                          updateUserInfo(emailTemp)
 
                           setForm(updated)
                           setEditing(false)
