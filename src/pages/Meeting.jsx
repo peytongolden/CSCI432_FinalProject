@@ -819,7 +819,7 @@ function Meeting() {
                     className="code-action-btn"
                     onClick={async () => {
                       try {
-                        const shareUrl = `${window.location.origin}/join?meetingCode=${encodeURIComponent(meetingCode)}`
+                        const shareUrl = `${window.location.origin}/join-meeting?code=${encodeURIComponent(meetingCode)}`
                         if (navigator.share) {
                           await navigator.share({ title: 'Join my meeting', text: `Use this meeting code to join: ${meetingCode}`, url: shareUrl })
                           setShared(true)
@@ -830,7 +830,7 @@ function Meeting() {
                           setTimeout(() => setShared(false), 2000)
                         }
                       } catch (err) {
-                        const shareUrl = `${window.location.origin}/join?meetingCode=${encodeURIComponent(meetingCode)}`
+                        const shareUrl = `${window.location.origin}/join-meeting?code=${encodeURIComponent(meetingCode)}`
                         try { await navigator.clipboard.writeText(shareUrl); setShared(true); setTimeout(() => setShared(false), 2000) } catch (e) { /* ignore */ }
                       }
                     }}

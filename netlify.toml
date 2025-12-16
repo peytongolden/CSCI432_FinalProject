@@ -49,7 +49,7 @@ status = 200
 
 [[redirects]]
 from = "/api/meetings/:id"
-to = "/.netlify/functions/meetings-get"
+to = "/.netlify/functions/meetings"
 status = 200
 
 [[redirects]]
