@@ -124,6 +124,10 @@ function AccountDetails() {
 
   // Databse call to update user account information
   const updateUserInfo = async (email) => {
+
+    const temp = localStorage.getItem('userInfo')
+    let {_id, ...upload}  = temp
+
     try {
       const res = await apiFetch(`/api/user/update/${email}`, {
         method: 'PATCH',
@@ -132,7 +136,7 @@ function AccountDetails() {
           'Content-Type': 'application/json',
           Accept: 'application/json'
         },
-        body: localStorage.getItem('userInfo')
+        body: upload
         })
       const data = await res.json()
     } catch(e) {
