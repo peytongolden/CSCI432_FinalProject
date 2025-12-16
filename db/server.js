@@ -162,7 +162,7 @@ app.delete('/api/user/delete/:id', authenticateToken, (req, res) => {
 // Do not use this API to modify committee_memberships, use a different API instead
 
 app.patch('/api/user/update/:id', authenticateToken, (req, res) => {
-    const updates = req.body;
+    const updates = JSON.parse(req.body);
 
     db.collection('users')
         .updateOne({ email: req.params.id}, {$set: updates})

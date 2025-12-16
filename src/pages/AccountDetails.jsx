@@ -144,7 +144,7 @@ function AccountDetails() {
           'Content-Type': 'application/json',
           Accept: 'application/json'
         },
-        body: upload
+        body: JSON.stringify(upload)
         })
       const data = await res.json()
     } catch(e) {
