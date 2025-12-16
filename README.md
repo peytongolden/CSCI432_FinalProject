@@ -195,7 +195,7 @@ Vote colors:
 - [API Documentation](./API_DOCUMENTATION.md) - Complete API reference
 - [Testing Setup](./TESTING_SETUP.md) - Local testing guide
 - [Changes Summary](./CHANGES_SUMMARY.md) - Implementation details
-- Database Collections TBA
+- [Database Collections](./DATABSE_DOCUMENTATION) - Description of MongoDB Collections
 
 ## 🧪 Testing
 
