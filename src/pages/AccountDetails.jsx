@@ -45,7 +45,7 @@ function AccountDetails() {
         })
         const data = await res.json()
         if (res.ok && data.success && data.user) {
-          setUserInfo(Jdata.user)
+          setUserInfo(data.user)
           setForm(data.user)
           try { localStorage.setItem('userInfo', JSON.stringify(data.user)) } catch (e) { console.error(e) }
           
