@@ -130,10 +130,10 @@ function AccountDetails() {
         headers: {
           Authorization: `Bearer ${localStorage.getItem('token')}`,
           'Content-Type': 'application/json',
-          Accept: 'application/json'
+          Accept: 'application/json',
         },
-        body: JSON.stringify(formdata)
-        })
+        body: JSON.stringify(formdata),
+      })
       const data = await res.json()
     } catch(e) {
       console.log(e)
