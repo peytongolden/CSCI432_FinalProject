@@ -65,9 +65,9 @@ https://csci432group.netlify.app/
 
 ### Meeting Page
 ![alt text](https://github.com/peytongolden/CSCI432_FinalProject/blob/netlifyTest/readme_pics/ronrMeeting1.png "Meeting Page 1")
-![alt text](https://github.com/peytongolden/CSCI432_FinalProject/blob/netlifyTest/readme_pics/ronrNewMotion.png "New Motion Page")
-![alt text]( "")
-![alt text]( "")
+![alt text](https://github.com/peytongolden/CSCI432_FinalProject/blob/netlifyTest/readme_pics/ronrNewMotion.png "New Motion Pag")
+![alt text](https://github.com/peytongolden/CSCI432_FinalProject/blob/netlifyTest/readme_pics/ronrEndVoting.png "End Voting and Record Summary Screen")
+![alt text](https://github.com/peytongolden/CSCI432_FinalProject/blob/netlifyTest/readme_pics/ronrChairControls.png "Chair Controls")
 ![alt text](https://github.com/peytongolden/CSCI432_FinalProject/blob/netlifyTest/readme_pics/ronrMeeting2.png "Meeting Page 2")
 (Screenshot of meeting page from chair's perspective. Committee Members populated, Main motion in place, Vote tally shown, discussion populated, and Motion History exists with one or two completed motions)
 (Screenshot of chair controls)
