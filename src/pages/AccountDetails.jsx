@@ -125,7 +125,7 @@ function AccountDetails() {
   // Databse call to update user account information
   const updateUserInfo = async (email) => {
     try {
-      const res = await apiFetch(`/api/user/update/${emailTemp}`, {
+      const res = await apiFetch(`/api/user/update/${email}`, {
         method: 'PATCH',
         headers: {
           Authorization: `Bearer ${localStorage.getItem('token')}`,
