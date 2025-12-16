@@ -509,6 +509,92 @@ app.post('/api/meetings/:id/join', async (req, res) => {
     }
 })
 
+// PATCH /api/meetings/:id - Update meeting (e.g., assign presiding officer)
+// Body: { presidingParticipantId?, active?, ... }
+app.patch('/api/meetings/:id', async (req, res) => {
+    try {
+        if (!ObjectId.isValid(req.params.id)) {
+            return res.status(400).json({ success: false, message: 'Invalid meeting id' })
+        }
+        const meetingId = new ObjectId(req.params.id)
+        const updates = req.body || {}
+
+        // Only allow certain fields to be updated
+        const allowedFields = ['presidingParticipantId', 'active', 'name', 'description']
+        const updateDoc = {}
+        for (const key of allowedFields) {
+            if (updates[key] !== undefined) {
+                updateDoc[key] = updates[key]
+            }
+        }
+
+        if (Object.keys(updateDoc).length === 0) {
+            return res.status(400).json({ success: false, message: 'No valid fields to update' })
+        }
+
+        const result = await db.collection('meetings').updateOne(
+            { _id: meetingId },
+            { $set: updateDoc }
+        )
+
+        if (result.matchedCount === 0) {
+            return res.status(404).json({ success: false, message: 'Meeting not found' })
+        }
+
+        return res.status(200).json({ success: true, message: 'Meeting updated' })
+    } catch (err) {
+        console.error(err)
+        return res.status(500).json({ success: false, message: 'Server error' })
+    }
+})
+
+// POST /api/meetings/:id/leave - Remove participant from meeting
+// Body: { participantId } or { uid }
+app.post('/api/meetings/:id/leave', async (req, res) => {
+    try {
+        if (!ObjectId.isValid(req.params.id)) {
+            return res.status(400).json({ success: false, message: 'Invalid meeting id' })
+        }
+        const meetingId = new ObjectId(req.params.id)
+        const { participantId, uid } = req.body || {}
+
+        if (!participantId && !uid) {
+            return res.status(400).json({ success: false, message: 'participantId or uid required' })
+        }
+
+        // Build pull filter that supports ObjectId _id or plain uid
+        const pullQuery = participantId && ObjectId.isValid(participantId)
+            ? { _id: new ObjectId(participantId) }
+            : (participantId ? { _id: participantId } : { uid })
+
+        const result = await db.collection('meetings').updateOne(
+            { _id: meetingId },
+            { $pull: { participants: pullQuery } }
+        )
+
+        if (result.modifiedCount === 0) {
+            return res.status(404).json({ success: false, message: 'Participant not found or already removed' })
+        }
+
+        // If the removed participant was presiding participant, clear it
+        const maybeFix = await db.collection('meetings').findOne({ _id: meetingId })
+        if (maybeFix && maybeFix.presidingParticipantId) {
+            const stillHasChair = Array.isArray(maybeFix.participants) && maybeFix.participants.some(p => 
+                String(p._id || p._id?.$oid) === String(maybeFix.presidingParticipantId) || 
+                String(p.uid) === String(maybeFix.presidingParticipantId)
+            )
+            if (!stillHasChair) {
+                await db.collection('meetings').updateOne({ _id: meetingId }, { $set: { presidingParticipantId: null } })
+            }
+        }
+
+        return res.status(200).json({ success: true })
+    } catch (err) {
+        console.error(err)
+        return res.status(500).json({ success: false, message: 'Server error' })
+    }
+})
+
 
 //delete committee, takes string version of ObjectId for parameter
 //also iterates through user information to delete their memberships
