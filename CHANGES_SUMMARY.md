@@ -248,18 +248,13 @@ User 1 (Chair)                    Backend                    User 2 (Member)
 
 ## 🔐 Environment Setup
 
-### Local (.env file)
-```env
-MONGODB_URI=mongodb+srv://WebProg_db_user:GNyHpWO2uFrlTkwn@kludgecity.ea7xba7.mongodb.net/?appName=KludgeCity
-JWT_SECRET=CatBitMe
-```
 
 ### Netlify (Production)
 Go to: https://app.netlify.com → Your Site → Site settings → Environment variables
 
 Add:
 - `MONGODB_URI` = (same as above)
-- `JWT_SECRET` = `CatBitMe`
+- `JWT_SECRET` = `Example`
 
 ---
 
