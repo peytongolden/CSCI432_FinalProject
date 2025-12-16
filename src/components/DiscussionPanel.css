@@ -98,6 +98,32 @@
   font-size: 16px;
 }
 
+/* Discussion Delimiter */
+.discussion-delimiter {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 16px 0;
+}
+
+.delimiter-line {
+  flex: 1;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, rgba(221, 161, 94, 0.3), transparent);
+}
+
+.delimiter-text {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--tigers-eye);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  white-space: nowrap;
+  padding: 4px 12px;
+  background: rgba(254, 250, 224, 0.6);
+  border-radius: 12px;
+}
+
 /* Discussion Item */
 .discussion-item {
   padding: 12px 14px;
@@ -110,6 +136,11 @@
 
 .discussion-item:hover {
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+.discussion-item.general-comment {
+  border-left-color: var(--earth-yellow);
+  background: linear-gradient(135deg, rgba(254, 250, 224, 0.15) 0%, white 100%);
 }
 
 .discussion-item.stance-pro {

@@ -1,16 +1,71 @@
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import './DiscussionPanel.css'
 
-function DiscussionPanel({ discussion, onAddComment, currentUser, motionStatus, hasActiveMotion = true }) {
+function DiscussionPanel({ 
+  generalDiscussion = [],
+  motionDiscussion = [], 
+  motionTitle = null,
+  onAddComment, 
+  currentUser, 
+  motionStatus, 
+  hasActiveMotion = false 
+}) {
   const [comment, setComment] = useState('')
   const [stance, setStance] = useState('neutral')
 
-  // Safely handle discussion array - ensure it's always an array
-  const safeDiscussion = Array.isArray(discussion) ? discussion : []
+  // Safely handle discussion arrays
+  const safeGeneralDiscussion = Array.isArray(generalDiscussion) ? generalDiscussion : []
+  const safeMotionDiscussion = Array.isArray(motionDiscussion) ? motionDiscussion : []
   
-  // Allow discussion when there's an active motion (voting or completed) - always allow comments
-  // Only close if explicitly needed (e.g., meeting ended)
-  const canComment = hasActiveMotion
+  // Merge and sort all discussions chronologically with delimiters
+  const mergedDiscussion = useMemo(() => {
+    const items = []
+    
+    // Add general discussion items
+    safeGeneralDiscussion.forEach(item => {
+      if (item) {
+        items.push({
+          ...item,
+          type: 'general',
+          timestamp: new Date(item.timestamp || 0)
+        })
+      }
+    })
+    
+    // Add motion discussion items
+    safeMotionDiscussion.forEach(item => {
+      if (item) {
+        items.push({
+          ...item,
+          type: 'motion',
+          timestamp: new Date(item.timestamp || 0)
+        })
+      }
+    })
+    
+    // Sort chronologically
+    items.sort((a, b) => a.timestamp - b.timestamp)
+    
+    // Add delimiters when switching between general and motion discussion
+    const withDelimiters = []
+    let lastType = null
+    
+    items.forEach((item, idx) => {
+      if (item.type !== lastType) {
+        // Add delimiter
+        withDelimiters.push({
+          type: 'delimiter',
+          discussionType: item.type,
+          motionTitle: item.type === 'motion' ? motionTitle : null,
+          key: `delimiter-${idx}-${item.type}`
+        })
+        lastType = item.type
+      }
+      withDelimiters.push(item)
+    })
+    
+    return withDelimiters
+  }, [safeGeneralDiscussion, safeMotionDiscussion, motionTitle])
 
   const handleSubmit = (e) => {
     e.preventDefault()
@@ -20,7 +75,10 @@ function DiscussionPanel({ discussion, onAddComment, currentUser, motionStatus, 
       return
     }
 
-    onAddComment(comment.trim(), stance)
+    // Pass isGeneral flag - if there's an active motion in voting, it's motion-specific
+    // otherwise it's general discussion
+    const isGeneral = !hasActiveMotion || motionStatus !== 'voting'
+    onAddComment(comment.trim(), isGeneral ? null : stance, isGeneral)
     setComment('')
     setStance('neutral')
   }
@@ -43,20 +101,23 @@ function DiscussionPanel({ discussion, onAddComment, currentUser, motionStatus, 
 
   const formatTime = (timestamp) => {
     if (!timestamp) return ''
-    const date = new Date(timestamp)
+    const date = timestamp instanceof Date ? timestamp : new Date(timestamp)
     return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
   }
 
-  // Group comments by stance for summary - use safe discussion array
-  const proComments = safeDiscussion.filter(d => d && d.stance === 'pro')
-  const conComments = safeDiscussion.filter(d => d && d.stance === 'con')
-  const neutralComments = safeDiscussion.filter(d => d && (d.stance === 'neutral' || !d.stance))
+  // Group motion comments by stance for summary (only for active motion)
+  const proComments = safeMotionDiscussion.filter(d => d && d.stance === 'pro')
+  const conComments = safeMotionDiscussion.filter(d => d && d.stance === 'con')
+  const neutralComments = safeMotionDiscussion.filter(d => d && (d.stance === 'neutral' || !d.stance))
+
+  // Determine if we should show stance selector
+  const showStanceSelector = hasActiveMotion && motionStatus === 'voting'
 
   return (
     <div className="discussion-panel">
       <div className="discussion-header">
-        <h3>{hasActiveMotion ? 'Motion Discussion' : 'General Discussion'}</h3>
-        {hasActiveMotion && (
+        <h3>Committee Discussion</h3>
+        {hasActiveMotion && motionStatus === 'voting' && (
           <div className="stance-summary">
             <span className="summary-item pro">👍 {proComments.length}</span>
             <span className="summary-item con">👎 {conComments.length}</span>
@@ -66,20 +127,37 @@ function DiscussionPanel({ discussion, onAddComment, currentUser, motionStatus, 
       </div>
 
       <div className="discussion-messages">
-        {!hasActiveMotion ? (
+        {mergedDiscussion.length === 0 ? (
           <div className="no-discussion">
-            No motion is currently active. Create a new motion to start the discussion.
-          </div>
-        ) : safeDiscussion.length === 0 ? (
-          <div className="no-discussion">
-            No comments yet. Be the first to share your thoughts!
+            No comments yet. Start the conversation!
           </div>
         ) : (
-          safeDiscussion.map((item, idx) => {
-            // Safely handle potentially malformed discussion items
+          mergedDiscussion.map((item, idx) => {
             if (!item) return null
+            
+            // Render delimiter
+            if (item.type === 'delimiter') {
+              return (
+                <div key={item.key || `delimiter-${idx}`} className="discussion-delimiter">
+                  <div className="delimiter-line"></div>
+                  <div className="delimiter-text">
+                    {item.discussionType === 'motion' ? (
+                      <>📋 Motion: {item.motionTitle || 'Untitled Motion'}</>
+                    ) : (
+                      <>💬 General Committee Discussion</>
+                    )}
+                  </div>
+                  <div className="delimiter-line"></div>
+                </div>
+              )
+            }
+            
+            // Render discussion item
             return (
-              <div key={item._id || idx} className={`discussion-item ${getStanceClass(item.stance)}`}>
+              <div 
+                key={item._id || idx} 
+                className={`discussion-item ${getStanceClass(item.stance)} ${item.type === 'general' ? 'general-comment' : ''}`}
+              >
                 <div className="discussion-item-header">
                   <span className="stance-icon">{getStanceIcon(item.stance)}</span>
                   <span className="participant-name">{item.participantName || 'Anonymous'}</span>
@@ -94,60 +172,55 @@ function DiscussionPanel({ discussion, onAddComment, currentUser, motionStatus, 
         )}
       </div>
 
-      {canComment && (
-        <form className="discussion-form" onSubmit={handleSubmit}>
-          {hasActiveMotion && motionStatus === 'voting' && (
-            <div className="stance-selector">
-              <label>Your stance:</label>
-              <div className="stance-buttons">
-                <button
-                  type="button"
-                  className={`stance-btn pro ${stance === 'pro' ? 'active' : ''}`}
-                  onClick={() => setStance('pro')}
-                >
-                  👍 Pro
-                </button>
-                <button
-                  type="button"
-                  className={`stance-btn neutral ${stance === 'neutral' ? 'active' : ''}`}
-                  onClick={() => setStance('neutral')}
-                >
-                  💬 Neutral
-                </button>
-                <button
-                  type="button"
-                  className={`stance-btn con ${stance === 'con' ? 'active' : ''}`}
-                  onClick={() => setStance('con')}
-                >
-                  👎 Con
-                </button>
-              </div>
+      <form className="discussion-form" onSubmit={handleSubmit}>
+        {showStanceSelector && (
+          <div className="stance-selector">
+            <label>Your stance on this motion:</label>
+            <div className="stance-buttons">
+              <button
+                type="button"
+                className={`stance-btn pro ${stance === 'pro' ? 'active' : ''}`}
+                onClick={() => setStance('pro')}
+              >
+                👍 Pro
+              </button>
+              <button
+                type="button"
+                className={`stance-btn neutral ${stance === 'neutral' ? 'active' : ''}`}
+                onClick={() => setStance('neutral')}
+              >
+                💬 Neutral
+              </button>
+              <button
+                type="button"
+                className={`stance-btn con ${stance === 'con' ? 'active' : ''}`}
+                onClick={() => setStance('con')}
+              >
+                👎 Con
+              </button>
             </div>
-          )}
-
-          <div className="comment-input-row">
-            <input
-              type="text"
-              value={comment}
-              onChange={(e) => setComment(e.target.value)}
-              placeholder={hasActiveMotion ? "Share your thoughts on this motion..." : "Share your thoughts with the committee..."}
-              className="comment-input"
-            />
-            <button type="submit" className="submit-comment-btn" disabled={!comment.trim()}>
-              Send
-            </button>
           </div>
-        </form>
-      )}
+        )}
 
-      {!canComment && (
-        <div className="discussion-closed">
-          {hasActiveMotion ? 'Discussion is closed for this motion.' : 'Start a motion to enable discussion.'}
+        <div className="comment-input-row">
+          <input
+            type="text"
+            value={comment}
+            onChange={(e) => setComment(e.target.value)}
+            placeholder={
+              showStanceSelector 
+                ? "Share your thoughts on this motion..." 
+                : "Share your thoughts with the committee..."
+            }
+            className="comment-input"
+          />
+          <button type="submit" className="submit-comment-btn" disabled={!comment.trim()}>
+            Send
+          </button>
         </div>
-      )}
+      </form>
     </div>
   )
 }
 
 export default DiscussionPanel
-
