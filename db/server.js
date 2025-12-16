@@ -163,6 +163,7 @@ app.delete('/api/user/delete/:id', authenticateToken, (req, res) => {
 
 app.patch('/api/user/update/:id', authenticateToken, (req, res) => {
     const updates = JSON.parse(req.body);
+    delete updates["_id"]
 
     db.collection('users')
         .updateOne({ email: req.params.id}, {$set: updates})
