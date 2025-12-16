@@ -151,7 +151,6 @@ function AccountDetails() {
                     <button
                       className="primary"
                       onClick={() => {
-                        try {async () => {
                           // Ensure phone is formatted before validating/saving
                           const formattedPhone = formatPhone(form.phone)
                           const emailErr = validateEmail(form.email)
@@ -168,23 +167,26 @@ function AccountDetails() {
                           setUserInfo(updated)
                           try { localStorage.setItem('userInfo', JSON.stringify(updated)) } catch (e) { console.error(e) }
 
-                          const res = await apiFetch(`/api/user/update/${emailTemp}`, {
-                            method: 'PATCH',
-                            headers: {
-                              Authorization: `Bearer ${localStorage.getItem('token')}`,
-                              'Content-Type': 'application/json',
-                              Accept: 'application/json'
-                            },
-                            body: localStorage.getItem('userInfo')
-                          })
-                          const data = await res.json()
+                          try {async (emailTemp) => {
+
+                            const res = await apiFetch(`/api/user/update/${emailTemp}`, {
+                              method: 'PATCH',
+                              headers: {
+                                Authorization: `Bearer ${localStorage.getItem('token')}`,
+                                'Content-Type': 'application/json',
+                                Accept: 'application/json'
+                              },
+                              body: localStorage.getItem('userInfo')
+                            })
+                            const data = await res.json()
+
+                          }} catch(e) {
+                            console.log(e)
+                          }
 
                           setForm(updated)
                           setEditing(false)
-                        }} catch(e) {
-                          console.log(e)
-                        }
-                      }}
+                        }}
                       disabled={Object.keys(errors).length > 0}
                     >
                       Save
