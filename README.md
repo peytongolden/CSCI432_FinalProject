@@ -47,26 +47,34 @@ https://csci432group.netlify.app/
 ## Website Walkthrough in Screenshots
 
 ### Sign in Page
-(Login screenshot)
+![alt text](https://github.com/peytongolden/CSCI432_FinalProject/blob/netlifyTest/readme_pics/ronrLogin.png "Login Screen")
 
 ### Home Page
-(Home page screenshot)
+![alt text](https://github.com/peytongolden/CSCI432_FinalProject/blob/netlifyTest/readme_pics/ronrHome.png "Home Page")
 
 ### Account Details
-(Account Details page, with committee memberships populated)
-(Account Details with Edit Selected)
+![alt text](https://github.com/peytongolden/CSCI432_FinalProject/blob/netlifyTest/readme_pics/ronrAccountDetails1.png "Account Details 1")
+![alt text](https://github.com/peytongolden/CSCI432_FinalProject/blob/netlifyTest/readme_pics/ronrAccountDetails2.png "Account Details 2")
 
 ### Create Meeting
-(Screenshot of create meeting page, with committee memberships and new meeting details populated)
+![alt text](https://github.com/peytongolden/CSCI432_FinalProject/blob/netlifyTest/readme_pics/ronrNewMeeting.png "Create Meeting Page")
 
 ### Join Meeting
+![alt text]( "")
 (Screenshot of Join Meeting Page with committee memberships populated and meeting join information populated)
 
 ### Meeting Page
+![alt text](https://github.com/peytongolden/CSCI432_FinalProject/blob/netlifyTest/readme_pics/ronrMeeting1.png "Meeting Page 1")
+![alt text](https://github.com/peytongolden/CSCI432_FinalProject/blob/netlifyTest/readme_pics/ronrNewMotion.png "New Motion Page")
+![alt text]( "")
+![alt text]( "")
+![alt text](https://github.com/peytongolden/CSCI432_FinalProject/blob/netlifyTest/readme_pics/ronrMeeting2.png "Meeting Page 2")
 (Screenshot of meeting page from chair's perspective. Committee Members populated, Main motion in place, Vote tally shown, discussion populated, and Motion History exists with one or two completed motions)
 (Screenshot of chair controls)
 (Screenshot of end voting and record summaryt screen)
+
 ### Help Pages
+![alt text](https://github.com/peytongolden/CSCI432_FinalProject/blob/netlifyTest/readme_pics/ronrhelp.png "Help Pages")
 (screeshot of the help pages, after they've been touched up)
 
 ## 🛠️ Technology Stack
