@@ -123,19 +123,7 @@ function AccountDetails() {
   }, [form.email, form.phone_number, editing])
 
   // Databse call to update user account information
-  const updateUserInfo = async (email) => {
-
-    const temp = localStorage.getItem('userInfo')
-    
-    const upload = {
-      "name": temp.name,
-      "email": temp.email,
-      "committee_memberships": temp.committee_memberships,
-      "phone_number": temp.phone_number,
-      "short_bio": temp.short_bio,
-      "address": temp.address
-    }
-
+  const updateUserInfo = async (email, formdata) => {
     try {
       const res = await apiFetch(`/api/user/update/${email}`, {
         method: 'PATCH',
@@ -144,7 +132,7 @@ function AccountDetails() {
           'Content-Type': 'application/json',
           Accept: 'application/json'
         },
-        body: upload
+        body: JSON.stringify(formdata)
         })
       const data = await res.json()
     } catch(e) {
@@ -195,7 +183,7 @@ function AccountDetails() {
                           setUserInfo(updated)
                           try { localStorage.setItem('userInfo', JSON.stringify(updated)) } catch (e) { console.error(e) }
 
-                          updateUserInfo(emailTemp)
+                          updateUserInfo(emailTemp, form)
 
                           setForm(updated)
                           setEditing(false)
