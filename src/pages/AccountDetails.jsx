@@ -126,8 +126,8 @@ function AccountDetails() {
   const updateUserInfo = async (email) => {
 
 
-    let {_id, ...upload} = localStorage.getItem('userInfo')
-    upload
+    const temp = localStorage.getItem('userInfo')
+    delete temp._id
 
     try {
       const res = await apiFetch(`/api/user/update/${email}`, {
@@ -137,11 +137,11 @@ function AccountDetails() {
           'Content-Type': 'application/json',
           Accept: 'application/json'
         },
-        body: upload
+        body: temp
         })
       const data = await res.json()
     } catch(e) {
-      console.log(e, upload)
+      console.log(e)
     }
   }
 
