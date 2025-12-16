@@ -560,6 +560,21 @@ app.patch('/api/meetings/:id', async (req, res) => {
             return res.status(400).json({ success: false, message: 'No valid fields to update' })
         }
 
+        // If changing presiding officer, also update participant roles
+        if (updates.presidingParticipantId !== undefined) {
+            const meeting = await db.collection('meetings').findOne({ _id: meetingId })
+            if (meeting && Array.isArray(meeting.participants)) {
+                // Update all participant roles: new chair gets 'chair', others get 'member'
+                const newParticipants = meeting.participants.map(p => {
+                    const participantId = String(p._id || p._id?.$oid)
+                    const isNewChair = participantId === String(updates.presidingParticipantId)
+                    return { ...p, role: isNewChair ? 'chair' : 'member' }
+                })
+                updateDoc.participants = newParticipants
+                console.log('[Meeting] Updated participant roles for new chair:', updates.presidingParticipantId)
+            }
+        }
+
         const result = await db.collection('meetings').updateOne(
             { _id: meetingId },
             { $set: updateDoc }

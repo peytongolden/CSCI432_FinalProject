@@ -409,6 +409,26 @@
   color: var(--pakistan-green);
 }
 
+.motion-status.completed.passed {
+  background: linear-gradient(135deg, #4caf50, #388e3c);
+  color: white;
+}
+
+.motion-status.completed.failed {
+  background: linear-gradient(135deg, #e53935, #c62828);
+  color: white;
+}
+
+.motion-status.completed.tied {
+  background: linear-gradient(135deg, #ffa726, #fb8c00);
+  color: white;
+}
+
+.motion-status.completed.overturned {
+  background: linear-gradient(135deg, #9c27b0, #7b1fa2);
+  color: white;
+}
+
 @keyframes pulseGlow {
   0%, 100% { box-shadow: 0 0 0 0 rgba(96, 108, 56, 0.5); }
   50% { box-shadow: 0 0 0 8px rgba(96, 108, 56, 0); }

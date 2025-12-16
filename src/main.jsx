@@ -7,12 +7,12 @@ import App from './App'
 import './index.css'
 
 // Version identifier for deployment verification
-const APP_VERSION = 'v2.1-creator-participant-fix'
-const DEPLOY_DATE = '2025-12-16T17:45:00Z'
+const APP_VERSION = 'v2.2-meeting-ux-improvements'
+const DEPLOY_DATE = '2025-12-16T18:15:00Z'
 console.log('%c🚀 CSCI432 Final Project', 'color: #4CAF50; font-size: 20px; font-weight: bold;')
 console.log(`%cVersion: ${APP_VERSION}`, 'color: #2196F3; font-size: 14px;')
 console.log(`%cDeployed: ${DEPLOY_DATE}`, 'color: #2196F3; font-size: 14px;')
-console.log('%cAll meeting APIs (motions, voting, discussion) included ✅', 'color: #4CAF50; font-size: 12px;')
+console.log('%c✅ Passed/Failed status pills | ✅ Overturn motions | ✅ Chair assignment | ✅ Discussion improvements', 'color: #4CAF50; font-size: 11px;')
 
 function renderApp() {
   try {

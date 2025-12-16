@@ -1,9 +1,13 @@
 import { useState } from 'react'
 import './DiscussionPanel.css'
 
-function DiscussionPanel({ discussion, onAddComment, currentUser, motionStatus }) {
+function DiscussionPanel({ discussion, onAddComment, currentUser, motionStatus, hasActiveMotion = true }) {
   const [comment, setComment] = useState('')
   const [stance, setStance] = useState('neutral')
+
+  // Allow discussion when there's an active motion (voting or completed) - always allow comments
+  // Only close if explicitly needed (e.g., meeting ended)
+  const canComment = hasActiveMotion
 
   const handleSubmit = (e) => {
     e.preventDefault()
@@ -44,16 +48,22 @@ function DiscussionPanel({ discussion, onAddComment, currentUser, motionStatus }
   return (
     <div className="discussion-panel">
       <div className="discussion-header">
-        <h3>Discussion</h3>
-        <div className="stance-summary">
-          <span className="summary-item pro">👍 {proComments.length}</span>
-          <span className="summary-item con">👎 {conComments.length}</span>
-          <span className="summary-item neutral">💬 {neutralComments.length}</span>
-        </div>
+        <h3>{hasActiveMotion ? 'Motion Discussion' : 'General Discussion'}</h3>
+        {hasActiveMotion && (
+          <div className="stance-summary">
+            <span className="summary-item pro">👍 {proComments.length}</span>
+            <span className="summary-item con">👎 {conComments.length}</span>
+            <span className="summary-item neutral">💬 {neutralComments.length}</span>
+          </div>
+        )}
       </div>
 
       <div className="discussion-messages">
-        {discussion.length === 0 ? (
+        {!hasActiveMotion ? (
+          <div className="no-discussion">
+            No motion is currently active. Create a new motion to start the discussion.
+          </div>
+        ) : discussion.length === 0 ? (
           <div className="no-discussion">
             No comments yet. Be the first to share your thoughts!
           </div>
@@ -73,41 +83,43 @@ function DiscussionPanel({ discussion, onAddComment, currentUser, motionStatus }
         )}
       </div>
 
-      {motionStatus === 'voting' && (
+      {canComment && (
         <form className="discussion-form" onSubmit={handleSubmit}>
-          <div className="stance-selector">
-            <label>Your stance:</label>
-            <div className="stance-buttons">
-              <button
-                type="button"
-                className={`stance-btn pro ${stance === 'pro' ? 'active' : ''}`}
-                onClick={() => setStance('pro')}
-              >
-                👍 Pro
-              </button>
-              <button
-                type="button"
-                className={`stance-btn neutral ${stance === 'neutral' ? 'active' : ''}`}
-                onClick={() => setStance('neutral')}
-              >
-                💬 Neutral
-              </button>
-              <button
-                type="button"
-                className={`stance-btn con ${stance === 'con' ? 'active' : ''}`}
-                onClick={() => setStance('con')}
-              >
-                👎 Con
-              </button>
+          {hasActiveMotion && motionStatus === 'voting' && (
+            <div className="stance-selector">
+              <label>Your stance:</label>
+              <div className="stance-buttons">
+                <button
+                  type="button"
+                  className={`stance-btn pro ${stance === 'pro' ? 'active' : ''}`}
+                  onClick={() => setStance('pro')}
+                >
+                  👍 Pro
+                </button>
+                <button
+                  type="button"
+                  className={`stance-btn neutral ${stance === 'neutral' ? 'active' : ''}`}
+                  onClick={() => setStance('neutral')}
+                >
+                  💬 Neutral
+                </button>
+                <button
+                  type="button"
+                  className={`stance-btn con ${stance === 'con' ? 'active' : ''}`}
+                  onClick={() => setStance('con')}
+                >
+                  👎 Con
+                </button>
+              </div>
             </div>
-          </div>
+          )}
 
           <div className="comment-input-row">
             <input
               type="text"
               value={comment}
               onChange={(e) => setComment(e.target.value)}
-              placeholder="Share your thoughts on this motion..."
+              placeholder={hasActiveMotion ? "Share your thoughts on this motion..." : "Share your thoughts with the committee..."}
               className="comment-input"
             />
             <button type="submit" className="submit-comment-btn" disabled={!comment.trim()}>
@@ -117,9 +129,9 @@ function DiscussionPanel({ discussion, onAddComment, currentUser, motionStatus }
         </form>
       )}
 
-      {motionStatus !== 'voting' && (
+      {!canComment && (
         <div className="discussion-closed">
-          Discussion is closed for this motion.
+          {hasActiveMotion ? 'Discussion is closed for this motion.' : 'Start a motion to enable discussion.'}
         </div>
       )}
     </div>
