@@ -45,8 +45,8 @@ function AccountDetails() {
         })
         const data = await res.json()
         if (res.ok && data.success && data.user) {
-          setUserInfo(JSON.stringify(data.user))
-          setForm(JSON.stringify(data.user))
+          setUserInfo(Jdata.user)
+          setForm(data.user)
           try { localStorage.setItem('userInfo', JSON.stringify(data.user)) } catch (e) { console.error(e) }
           
           // Load user's committees
