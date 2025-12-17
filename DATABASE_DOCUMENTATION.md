@@ -1,13 +1,13 @@
 ## Collection one: Users
 
 {
-  _id: MongoDB ObjectID
-  email: String
-  password_hash: String
-  committee_Memberships: \[String Array\]
-  phone_number: String
-  short_bio: String
-  address: String
+  _id: MongoDB ObjectID,
+  email: String,
+  password_hash: String,
+  committee_Memberships: \[String Array\],
+  phone_number: String,
+  short_bio: String,
+  address: String,
 }
 
 
